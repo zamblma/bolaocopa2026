@@ -83,6 +83,7 @@
     <button class="nav-btn" data-page="resultados" onclick="showPage('resultados',this)">📋 Resultados</button>
     <button class="nav-btn" data-page="ranking" onclick="showPage('ranking',this)">🏆 Ranking</button>
     <button class="nav-btn" data-page="minhasApostas" onclick="showPage('minhasApostas',this)">📊 Meu Histórico</button>
+    <button class="nav-btn" data-page="bracket" onclick="showPage('bracket',this)">🌳 Chaveamento</button>
   </nav>
 
   <main>
@@ -130,6 +131,13 @@
       <div class="section-sub">Seus palpites e pontuação detalhada</div>
       <div class="my-bets-summary" id="myBetsSummary"></div>
       <div class="bet-review-list" id="betReviewList"></div>
+    </div>
+
+    <!-- BRACKET PAGE -->
+    <div class="page" id="page-bracket">
+      <div class="section-title">🌳 CHAVEAMENTO</div>
+      <div class="section-sub">Evolução da fase eliminatória</div>
+      <div id="bracketContainer"></div>
     </div>
   </main>
 </div>

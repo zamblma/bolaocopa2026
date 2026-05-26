@@ -501,24 +501,34 @@
     color: var(--green);
   }
 
-  .match-list { display: flex; flex-direction: column; gap: 0.8rem; }
+  .match-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.8rem;
+  }
+
+  @media (max-width: 700px) {
+    .match-list { grid-template-columns: 1fr; }
+  }
 
   .match-card {
     background: var(--gray-dark);
     border: 1.5px solid var(--gray-light);
     border-radius: 12px;
-    padding: 0.9rem 1rem;
-    transition: border-color 0.2s;
+    padding: 0.8rem 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
   }
 
   .match-card:hover { border-color: rgba(0,200,81,0.4); }
 
-  .match-card.has-palpite { border-color: rgba(0,200,81,0.5); }
+  .match-card.has-palpite { border-color: rgba(0,200,81,0.5); background: rgba(0,200,81,0.03); }
 
   .match-header {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     color: var(--silver);
-    margin-bottom: 0.7rem;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.6rem;
+    border-bottom: 1px solid var(--gray-light);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -553,32 +563,84 @@
 
   .match-team-name {
     font-weight: 700;
-    font-size: 0.88rem;
+    font-size: 0.9rem;
+    letter-spacing: 0.2px;
   }
 
   .match-vs {
     font-family: 'Gasoek One', sans-serif;
-    font-size: 1rem;
-    color: var(--silver);
+    font-size: 0.6rem;
+    color: var(--gray-light);
+    background: var(--gray-mid);
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    line-height: 1.2;
+  }
+
+  .match-vs-score {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
     flex-shrink: 0;
-    letter-spacing: 1px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 10px;
+    padding: 0.4rem 0.6rem;
+    min-width: 110px;
+  }
+
+  .match-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-bottom: 0.1rem;
+  }
+
+  .match-time-badge {
+    font-size: 0.6rem;
+    color: var(--silver);
+    font-weight: 600;
+    background: rgba(255,255,255,0.05);
+    padding: 0.1rem 0.45rem;
+    border-radius: 4px;
+  }
+
+  .match-locked-badge {
+    font-size: 0.6rem;
+    color: var(--red);
+    font-weight: 700;
+  }
+
+  .palpite-saved {
+    font-size: 0.68rem;
+    color: var(--green);
+    font-weight: 700;
+    background: rgba(0,200,81,0.1);
+    padding: 0.15rem 0.5rem;
+    border-radius: 6px;
   }
 
   .score-input-wrap {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    margin-top: 0.75rem;
+    gap: 0.25rem;
+  }
+
+  .match-save-row {
+    display: flex;
+    justify-content: center;
+    margin-top: 0.5rem;
   }
 
   .score-input {
-    width: 48px; height: 40px;
+    width: 42px; height: 36px;
     background: var(--gray-mid);
     border: 1.5px solid var(--gray-light);
-    border-radius: 8px;
+    border-radius: 6px;
     color: var(--white);
     font-family: 'Gasoek One', sans-serif;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     text-align: center;
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
@@ -591,32 +653,25 @@
 
   .score-sep {
     font-family: 'Gasoek One', sans-serif;
-    font-size: 1.2rem;
-    color: var(--silver);
+    font-size: 1rem;
+    color: var(--gray-light);
   }
-
-  .score-spacer { flex: 1; }
 
   .btn-save-palpite {
     background: var(--green-dark);
     border: none;
-    border-radius: 7px;
+    border-radius: 8px;
     color: var(--white);
-    padding: 0.4rem 0.9rem;
+    padding: 0.35rem 1rem;
     cursor: pointer;
     font-family: 'Nunito', sans-serif;
     font-weight: 700;
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     transition: all 0.2s;
+    letter-spacing: 0.5px;
   }
 
-  .btn-save-palpite:hover { background: var(--green); color: var(--black); }
-
-  .palpite-saved {
-    font-size: 0.72rem;
-    color: var(--green);
-    font-weight: 700;
-  }
+  .btn-save-palpite:hover { background: var(--green); color: var(--black); transform: scale(1.03); }
 
   /* ===== RESULTADOS (ADMIN) ===== */
   .admin-note {
@@ -939,4 +994,233 @@
   .empty-text {
     font-size: 0.9rem;
   }
+
+  /* ===== LOCKED PALPITE ===== */
+  .score-input.locked { opacity: 0.35; cursor: not-allowed; }
+
+  /* ===== BRACKET ===== */
+  .bracket-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+  }
+
+  .bracket-round {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 140px;
+  }
+
+  .bracket-round-title {
+    font-family: 'Gasoek One', sans-serif;
+    font-size: 0.75rem;
+    color: var(--green);
+    text-align: center;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid var(--gray-light);
+    margin-bottom: 0.3rem;
+    text-shadow: 0 0 6px rgba(0,200,81,0.3);
+  }
+
+  .bracket-match {
+    background: var(--gray-dark);
+    border: 1px solid var(--gray-light);
+    border-radius: 6px;
+    padding: 0.35rem 0.5rem;
+    transition: border-color 0.15s;
+  }
+
+  .bracket-match:hover { border-color: rgba(0,200,81,0.4); }
+
+  .bracket-done { border-color: rgba(0,200,81,0.3); }
+
+  .bracket-teams { display: flex; flex-direction: column; gap: 0.15rem; }
+
+  .bracket-team {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--silver);
+  }
+
+  .bracket-team-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .bracket-winner { color: var(--white); font-weight: 700; }
+
+  .bracket-score {
+    font-family: 'Gasoek One', sans-serif;
+    font-size: 0.85rem;
+    color: var(--green);
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .bracket-adv { font-size: 0.6rem; flex-shrink: 0; }
+
+  .bracket-pending {
+    font-size: 0.6rem;
+    color: var(--gray-light);
+    text-align: center;
+    padding: 0.15rem 0;
+    font-style: italic;
+  }
+
+  @media (max-width: 800px) {
+    .bracket-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  @media (max-width: 500px) {
+    .bracket-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* ===== NEXT MATCHES ===== */
+  .next-matches-bar {
+    background: var(--gray-dark);
+    border: 1.5px solid var(--green);
+    border-radius: 12px;
+    padding: 0.7rem 1rem;
+    margin-bottom: 1.2rem;
+    grid-column: 1 / -1;
+  }
+
+  .next-matches-title {
+    font-family: 'Gasoek One', sans-serif;
+    font-size: 0.85rem;
+    color: var(--green);
+    margin-bottom: 0.5rem;
+    letter-spacing: 1px;
+  }
+
+  .next-matches-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .next-match {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.78rem;
+    padding: 0.25rem 0.4rem;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.03);
+  }
+
+  .next-date { color: var(--yellow); font-weight: 700; font-size: 0.7rem; white-space: nowrap; }
+  .next-teams { flex: 1; color: var(--white); font-weight: 600; }
+  .next-phase { color: var(--silver); font-size: 0.65rem; }
+  .next-live { background: rgba(255,0,0,0.06); border-left: 3px solid var(--red); }
+
+  /* ===== GROUP TABLE ===== */
+  .group-status { font-size: 0.7rem; color: var(--silver); margin-left: auto; font-weight: 600; }
+
+  .team-row.team-qualified { border-left: 3px solid var(--green); background: rgba(0,200,81,0.06); }
+  .team-row.team-third { border-left: 3px solid var(--yellow); background: rgba(255,215,0,0.04); }
+
+  .team-stats { font-family: 'Gasoek One', sans-serif; font-size: 1rem; color: var(--green); text-align: right; }
+  .team-stats-label { font-size: 0.5rem; color: var(--silver); margin-left: 0.15rem; }
+
+  .group-table {
+    border-top: 1px solid var(--gray-mid);
+    padding: 0.4rem 0.5rem;
+    font-size: 0.68rem;
+  }
+
+  .gtable-row {
+    display: grid;
+    grid-template-columns: 1.2rem 1fr 1.5rem 1.5rem 1.5rem 1.5rem 1.5rem 1.5rem 1.5rem 1.4rem;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.2rem 0;
+    text-align: center;
+    border-radius: 4px;
+  }
+
+  .gtable-header { color: var(--silver); font-weight: 700; font-size: 0.6rem; text-transform: uppercase; border-bottom: 1px solid var(--gray-mid); padding-bottom: 0.3rem; margin-bottom: 0.15rem; }
+  .gtable-team { text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+  .gtable-pos { font-weight: 700; color: var(--silver); }
+  .gtable-pts { font-family: 'Gasoek One', sans-serif; color: var(--green); font-size: 0.8rem; }
+  .gtable-qualified { background: rgba(0,200,81,0.06); }
+  .gtable-third { background: rgba(255,215,0,0.04); }
+  .gd-pos { color: var(--green); font-weight: 700; }
+  .gd-neg { color: var(--red); font-weight: 700; }
+
+  /* ===== BADGES ===== */
+  .rank-badges { display: flex; gap: 0.25rem; flex-wrap: wrap; margin-top: 0.3rem; }
+
+  .rank-badge {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--gray-light);
+    border-radius: 10px;
+    padding: 0.1rem 0.45rem;
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: var(--silver);
+    white-space: nowrap;
+  }
+
+  .rank-top-team {
+    font-size: 0.6rem;
+    color: var(--yellow);
+    font-weight: 600;
+    margin-top: 0.2rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100px;
+  }
+
+  /* ===== EXTRA STATS ===== */
+  .extra-stats { margin-top: 1rem; }
+
+  .phase-stats-list { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1rem; }
+
+  .phase-stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .phase-stat-label { width: 80px; font-weight: 700; color: var(--silver); flex-shrink: 0; }
+
+  .phase-stat-bar-wrap {
+    flex: 1;
+    height: 8px;
+    background: var(--gray-mid);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .phase-stat-bar {
+    display: block;
+    height: 100%;
+    background: var(--green);
+    border-radius: 4px;
+    transition: width 0.3s;
+  }
+
+  .phase-stat-num { width: 80px; text-align: right; color: var(--silver); font-weight: 600; flex-shrink: 0; }
+
+  .top-teams-list { display: flex; flex-direction: column; gap: 0.3rem; }
+
+  .top-team-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+    background: rgba(255,255,255,0.03);
+    border-radius: 6px;
+  }
+
+  .top-team-pos { font-size: 0.9rem; }
+  .top-team-name { flex: 1; font-weight: 600; }
+  .top-team-pts { font-family: 'Gasoek One', sans-serif; color: var(--green); font-size: 0.85rem; }
 
