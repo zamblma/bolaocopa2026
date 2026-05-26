@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bolão Copa 2026 - Ben10 Edition</title>
+<link href="https://fonts.googleapis.com/css2?family=Gasoek+One&family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- LOGIN PAGE -->
+<div id="loginPage">
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="login-logo-wrap">
+        <img class="login-logo-img" src="logo-bolao-v2.svg" alt="Bolão Copa 2026">
+      </div>
+      <div class="login-title">BOLÃO <span>2026</span></div>
+      <div class="login-subtitle">Copa do Mundo • Ben10 Edition</div>
+
+      <!-- LOGIN FORM -->
+      <div id="loginForm">
+        <div class="error-msg" id="loginError"></div>
+        <div class="form-group">
+          <label>E-mail</label>
+          <input type="email" id="loginEmail" placeholder="seu@email.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label>Senha</label>
+          <input type="password" id="loginPass" placeholder="••••••" autocomplete="current-password">
+        </div>
+        <button class="btn-primary" onclick="doLogin()">ENTRAR</button>
+        <div class="toggle-link">Não tem conta? <a onclick="toggleForms()">Cadastrar</a></div>
+      </div>
+
+      <!-- REGISTER FORM -->
+      <div id="registerForm" style="display:none;">
+        <div class="error-msg" id="registerError"></div>
+        <div class="success-msg" id="registerSuccess"></div>
+        <div class="form-group">
+          <label>Nome</label>
+          <input type="text" id="regName" placeholder="Escolha um nome" autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label>E-mail</label>
+          <input type="email" id="regEmail" placeholder="seu@email.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label>Senha</label>
+          <input type="password" id="regPass" placeholder="••••••" autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label>Confirmar Senha</label>
+          <input type="password" id="regPass2" placeholder="••••••" autocomplete="new-password">
+        </div>
+        <button class="btn-primary" onclick="doRegister()">CADASTRAR</button>
+        <div class="toggle-link">Já tem conta? <a onclick="toggleForms()">Entrar</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- APP (after login) -->
+<div id="app" style="display:none;">
+  <header>
+    <div class="logo">
+      <img class="logo-img" src="logo-bolao-v2.svg" alt="Bolão Copa 2026">
+      <div class="logo-text">BOLÃO <span>2026</span></div>
+    </div>
+    <div class="header-user">
+      <div class="user-badge" id="headerUserName">—</div>
+      <button class="btn-logout" onclick="logout()">Sair</button>
+    </div>
+  </header>
+
+  <nav>
+    <button class="nav-btn active" data-page="grupos" onclick="showPage('grupos',this)">⚽ Grupos</button>
+    <button class="nav-btn" data-page="palpites" onclick="showPage('palpites',this)">🎯 Meus Palpites</button>
+    <button class="nav-btn" data-page="resultados" onclick="showPage('resultados',this)">📋 Resultados</button>
+    <button class="nav-btn" data-page="ranking" onclick="showPage('ranking',this)">🏆 Ranking</button>
+    <button class="nav-btn" data-page="minhasApostas" onclick="showPage('minhasApostas',this)">📊 Meu Histórico</button>
+  </nav>
+
+  <main>
+    <!-- GRUPOS PAGE -->
+    <div class="page active" id="page-grupos">
+      <div class="section-title">⚽ GRUPOS</div>
+      <div class="section-sub">48 seleções divididas em 12 grupos — Copa do Mundo 2026</div>
+      <div class="groups-grid" id="groupsGrid"></div>
+    </div>
+
+    <!-- PALPITES PAGE -->
+    <div class="page" id="page-palpites">
+      <div class="section-title">🎯 PALPITES</div>
+      <div class="section-sub">Insira seus palpites para cada jogo</div>
+      <div class="phase-tabs" id="phaseTabs"></div>
+      <div class="match-list" id="matchList"></div>
+    </div>
+
+    <!-- RESULTADOS PAGE -->
+    <div class="page" id="page-resultados">
+      <div class="section-title">📋 RESULTADOS REAIS</div>
+      <div class="section-sub">Inserir os resultados oficiais dos jogos</div>
+      <div class="admin-note">
+        ⚠️ <span>Insira aqui os resultados reais após cada jogo. Os pontos do bolão serão calculados automaticamente.</span>
+      </div>
+      <div class="phase-tabs" id="resultPhaseTabs"></div>
+      <div id="resultList"></div>
+    </div>
+
+    <!-- RANKING PAGE -->
+    <div class="page" id="page-ranking">
+      <div class="ranking-header-row">
+        <div>
+          <div class="section-title">🏆 RANKING</div>
+          <div class="section-sub">Pontuação geral do bolão</div>
+        </div>
+        <button class="btn-secondary" onclick="renderRanking()">↻ Atualizar</button>
+      </div>
+      <div class="ranking-list" id="rankingList"></div>
+    </div>
+
+    <!-- MEU HISTÓRICO PAGE -->
+    <div class="page" id="page-minhasApostas">
+      <div class="section-title">📊 MEU HISTÓRICO</div>
+      <div class="section-sub">Seus palpites e pontuação detalhada</div>
+      <div class="my-bets-summary" id="myBetsSummary"></div>
+      <div class="bet-review-list" id="betReviewList"></div>
+    </div>
+  </main>
+</div>
+
+<script src="firebase-config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

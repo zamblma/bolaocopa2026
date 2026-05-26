@@ -1,0 +1,931 @@
+﻿:root {
+    --green: #00C851;
+    --green-dark: #007E33;
+    --green-neon: #39FF14;
+    --black: #0a0a0a;
+    --gray-dark: #1a1a1a;
+    --gray-mid: #2a2a2a;
+    --gray-light: #3a3a3a;
+    --white: #f0f0f0;
+    --yellow: #FFD700;
+    --orange: #FF6B00;
+    --red: #FF2222;
+    --silver: #c0c0c0;
+    --omnitrix: #00C851;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--black);
+    color: var(--white);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 20%, rgba(0,200,81,0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(57,255,20,0.05) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ===== SCROLLBAR ===== */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--gray-dark); }
+  ::-webkit-scrollbar-thumb { background: var(--green); border-radius: 3px; }
+
+  /* ===== HEADER ===== */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,10,10,0.95);
+    border-bottom: 2px solid var(--green);
+    backdrop-filter: blur(10px);
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    padding: 0.6rem 1.2rem;
+    box-shadow: 0 2px 20px rgba(0,200,81,0.3);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    justify-self: center;
+    grid-column: 2;
+    gap: 0.7rem;
+  }
+
+  .omnitrix {
+    width: 42px; height: 42px;
+    background: var(--gray-mid);
+    border-radius: 50%;
+    border: 3px solid var(--green);
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    box-shadow: 0 0 15px var(--green), inset 0 0 8px rgba(0,200,81,0.3);
+    animation: omni-pulse 2s infinite;
+    flex-shrink: 0;
+  }
+
+  .omnitrix::after {
+    content: '';
+    width: 18px; height: 18px;
+    background: var(--green);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--green-neon);
+  }
+
+  @keyframes omni-pulse {
+    0%,100% { box-shadow: 0 0 15px var(--green), inset 0 0 8px rgba(0,200,81,0.3); }
+    50% { box-shadow: 0 0 25px var(--green-neon), 0 0 40px rgba(0,200,81,0.4), inset 0 0 12px rgba(0,200,81,0.5); }
+  }
+
+  .logo-text {
+    font-family: 'Gasoek One', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 1px;
+    line-height: 1;
+    color: var(--green);
+    text-shadow: 0 0 10px rgba(0,200,81,0.5);
+  }
+
+  .logo-text span { color: var(--yellow); }
+
+  .logo-img {
+    display: block;
+    height: 44px;
+    width: auto;
+    max-width: 70px;
+    object-fit: contain;
+  }
+
+  .login-logo-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1rem;
+  }
+
+  .login-logo-img {
+    display: block;
+    width: min(130px, 42vw);
+    height: auto;
+    max-height: 120px;
+    object-fit: contain;
+  }
+
+  .header-user {
+    display: flex; align-items: center; gap: 0.8rem;
+    justify-self: end;
+    grid-column: 3;
+    font-size: 0.85rem;
+  }
+
+  .user-badge {
+    background: var(--gray-mid);
+    border: 1px solid var(--green);
+    border-radius: 20px;
+    padding: 0.3rem 0.8rem;
+    font-weight: 700;
+    color: var(--green);
+    font-size: 0.8rem;
+  }
+
+  .btn-logout {
+    background: transparent;
+    border: 1px solid var(--gray-light);
+    color: var(--silver);
+    border-radius: 6px;
+    padding: 0.3rem 0.7rem;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.75rem;
+    transition: all 0.2s;
+  }
+  .btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+  /* ===== NAV ===== */
+  nav {
+    background: var(--gray-dark);
+    border-bottom: 1px solid var(--gray-light);
+    display: flex;
+    justify-content: center;
+    overflow-x: auto;
+    gap: 0;
+    position: sticky;
+    top: 61px;
+    z-index: 99;
+  }
+
+  .nav-btn {
+    background: transparent;
+    border: none;
+    color: var(--silver);
+    padding: 0.75rem 1.1rem;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 0.82rem;
+    white-space: nowrap;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+
+  .nav-btn:hover { color: var(--green); background: rgba(0,200,81,0.05); }
+  .nav-btn.active { color: var(--green); border-bottom-color: var(--green); background: rgba(0,200,81,0.08); }
+
+  /* ===== MAIN ===== */
+  main {
+    position: relative;
+    z-index: 1;
+    padding: 1.2rem;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ===== LOGIN PAGE ===== */
+  .login-wrap {
+    min-height: calc(100vh - 62px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+  }
+
+  .login-card {
+    background: var(--gray-dark);
+    border: 2px solid var(--green);
+    border-radius: 16px;
+    padding: 2.5rem 2rem;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 0 40px rgba(0,200,81,0.2);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .login-card::before {
+    content: '';
+    position: absolute;
+    top: -50px; right: -50px;
+    width: 150px; height: 150px;
+    background: radial-gradient(circle, rgba(0,200,81,0.15) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+
+  .login-title {
+    font-family: 'Gasoek One', sans-serif;
+    font-size: 2.2rem;
+    color: var(--green);
+    text-align: center;
+    margin-bottom: 0.3rem;
+    text-shadow: 0 0 15px rgba(0,200,81,0.4);
+    letter-spacing: 2px;
+  }
+
+  .login-subtitle {
+    text-align: center;
+    color: var(--silver);
+    font-size: 0.85rem;
+    margin-bottom: 2rem;
+  }
+
+  .form-group { margin-bottom: 1.2rem; }
+
+  .form-group label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--green);
+    margin-bottom: 0.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .form-group input {
+    width: 100%;
+    background: var(--gray-mid);
+    border: 1.5px solid var(--gray-light);
+    border-radius: 8px;
+    padding: 0.7rem 1rem;
+    color: var(--white);
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.95rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+
+  .form-group input:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(0,200,81,0.15);
+  }
+
+  .btn-primary {
+    width: 100%;
+    background: var(--green);
+    border: none;
+    border-radius: 8px;
+    padding: 0.85rem;
+    color: var(--black);
+    font-family: 'Gasoek One', sans-serif;
+    font-size: 1.15rem;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 0.5rem;
+    box-shadow: 0 4px 15px rgba(0,200,81,0.3);
+  }
+
+  .btn-primary:hover {
+    background: var(--green-neon);
+    box-shadow: 0 4px 25px rgba(57,255,20,0.4);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    border: 1.5px solid var(--green);
+    color: var(--green);
+    border-radius: 8px;
+    padding: 0.6rem 1.2rem;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+  }
+
+  .btn-secondary:hover { background: rgba(0,200,81,0.1); }
+
+  .toggle-link {
+    text-align: center;
+    margin-top: 1.2rem;
+    font-size: 0.83rem;
+    color: var(--silver);
+  }
+
+  .toggle-link a {
+    color: var(--green);
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  .error-msg {
+    background: rgba(255,34,34,0.15);
+    border: 1px solid var(--red);
+    border-radius: 6px;
+    padding: 0.6rem 0.9rem;
+    color: var(--red);
+    font-size: 0.82rem;
+    margin-bottom: 1rem;
+    display: none;
+  }
+
+  .success-msg {
+    background: rgba(0,200,81,0.15);
+    border: 1px solid var(--green);
+    border-radius: 6px;
+    padding: 0.6rem 0.9rem;
+    color: var(--green);
+    font-size: 0.82rem;
+    margin-bottom: 1rem;
+    display: none;
+  }
+
+  /* ===== SECTION TITLE ===== */
+  .section-title {
+    font-family: 'Gasoek One', sans-serif;
+    font-size: 1.8rem;
+    color: var(--green);
+    letter-spacing: 2px;
+    margin-bottom: 0.3rem;
+    text-shadow: 0 0 10px rgba(0,200,81,0.3);
+  }
+
+  .section-sub {
+    color: var(--silver);
+    font-size: 0.85rem;
+    margin-bottom: 1.5rem;
+  }
+
+  /* ===== GROUPS PAGE ===== */
+  .groups-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+  }
+
+  .group-card {
+    background: var(--gray-dark);
+    border: 1.5px solid var(--gray-light);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .group-card:hover {
+    border-color: var(--green);
+    box-shadow: 0 0 15px rgba(0,200,81,0.15);
+  }
+
+  .group-header {
+    background: var(--gray-mid);
+    padding: 0.6rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    border-bottom: 1px solid var(--gray-light);
+  }
+
+  .group-letter {
+    font-family: 'Gasoek One', sans-serif;
+    font-size: 1.4rem;
+    color: var(--green);
+    line-height: 1;
+    text-shadow: 0 0 8px rgba(0,200,81,0.4);
+  }
+
+  .group-name {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--white);
+  }
+
+  .group-teams {
+    padding: 0.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .team-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.35rem 0.5rem;
+    border-radius: 6px;
+    transition: background 0.15s;
+  }
+
+  .team-row:hover { background: rgba(255,255,255,0.04); }
+
+  .flag {
+    font-size: 1.2rem;
+    line-height: 1;
+    width: 24px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .flag img {
+    width: 24px;
+    height: 18px;
+    display: block;
+    object-fit: cover;
+    border-radius: 2px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.18);
+  }
+
+  .flag-inline {
+    width: 22px;
+    height: 16px;
+    margin: 0 0.25rem;
+    vertical-align: -0.2rem;
+  }
+
+  .flag-inline img {
+    width: 22px;
+    height: 16px;
+  }
+
+  .flag-placeholder {
+    height: auto;
+  }
+
+  .team-name {
+    font-size: 0.83rem;
+    font-weight: 600;
+    flex: 1;
+  }
+
+  /* ===== MATCHES / PALPITES ===== */
+  .phase-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.2rem;
+    flex-wrap: wrap;
+  }
+
+  .phase-tab {
+    background: var(--gray-mid);
+    border: 1.5px solid var(--gray-light);
+    color: var(--silver);
+    border-radius: 20px;
+    padding: 0.4rem 0.9rem;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 0.78rem;
+    transition: all 0.2s;
+  }
+
+  .phase-tab.active, .phase-tab:hover {
+    background: rgba(0,200,81,0.15);
+    border-color: var(--green);
+    color: var(--green);
+  }
+
+  .match-list { display: flex; flex-direction: column; gap: 0.8rem; }
+
+  .match-card {
+    background: var(--gray-dark);
+    border: 1.5px solid var(--gray-light);
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+    transition: border-color 0.2s;
+  }
+
+  .match-card:hover { border-color: rgba(0,200,81,0.4); }
+
+  .match-card.has-palpite { border-color: rgba(0,200,81,0.5); }
+
+  .match-header {
+    font-size: 0.72rem;
+    color: var(--silver);
+    margin-bottom: 0.7rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .match-phase-badge {
+    background: rgba(0,200,81,0.15);
+    color: var(--green);
+    border-radius: 10px;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+  }
+
+  .match-teams {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .match-team {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .match-team.right {
+    flex-direction: row-reverse;
+    text-align: right;
+  }
+
+  .match-team-name {
+    font-weight: 700;
+    font-size: 0.88rem;
+  }
+
+  .match-vs {
+    font-family: 'Gasoek One', sans-serif;
+    font-size: 1rem;
+    color: var(--silver);
+    flex-shrink: 0;
+    letter-spacing: 1px;
+  }
+
+  .score-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+  }
+
+  .score-input {
+    width: 48px; height: 40px;
+    background: var(--gray-mid);
+    border: 1.5px solid var(--gray-light);
+    border-radius: 8px;
+    color: var(--white);
+    font-family: 'Gasoek One', sans-serif;
+    font-size: 1.2rem;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .score-input:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(0,200,81,0.15);
+  }
+
+  .score-sep {
+    font-family: 'Gasoek One', sans-serif;
+    font-size: 1.2rem;
+    color: var(--silver);
+  }
+
+  .score-spacer { flex: 1; }
+
+  .btn-save-palpite {
+    background: var(--green-dark);
+    border: none;
+    border-radius: 7px;
+    color: var(--white);
+    padding: 0.4rem 0.9rem;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 0.78rem;
+    transition: all 0.2s;
+  }
+
+  .btn-save-palpite:hover { background: var(--green); color: var(--black); }
+
+  .palpite-saved {
+    font-size: 0.72rem;
+    color: var(--green);
+    font-weight: 700;
+  }
+
+  /* ===== RESULTADOS (ADMIN) ===== */
+  .admin-note {
+    background: rgba(255,215,0,0.08);
+    border: 1px solid var(--yellow);
+    border-radius: 8px;
+    padding: 0.7rem 1rem;
+    color: var(--yellow);
+    font-size: 0.82rem;
+    margin-bottom: 1.2rem;
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+
+  .result-card {
+    background: var(--gray-dark);
+    border: 1.5px solid var(--gray-light);
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .result-row {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+  }
+
+  .result-team-label {
+    flex: 1;
+    font-weight: 700;
+    font-size: 0.85rem;
+    min-width: 100px;
+  }
+
+  .result-team-label.right { text-align: right; }
+
+  .result-score-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .score-result {
+    width: 48px; height: 38px;
+    background: var(--gray-mid);
+    border: 1.5px solid var(--yellow);
+    border-radius: 7px;
+    color: var(--yellow);
+    font-family: 'Gasoek One', sans-serif;
+    font-size: 1.2rem;
+    text-align: center;
+    outline: none;
+  }
+
+  .btn-save-result {
+    background: var(--yellow);
+    border: none;
+    border-radius: 7px;
+    color: var(--black);
+    padding: 0.45rem 1rem;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+  }
+
+  .btn-save-result:hover { background: var(--orange); color: var(--white); }
+
+  .result-saved-badge {
+    background: rgba(0,200,81,0.15);
+    color: var(--green);
+    border-radius: 8px;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+
+  /* ===== RANKING ===== */
+  .ranking-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  .ranking-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+  .ranking-card {
+    background: var(--gray-dark);
+    border: 1.5px solid var(--gray-light);
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ranking-card:hover { border-color: var(--green); }
+
+  .ranking-card.rank-1 { border-color: var(--yellow); background: rgba(255,215,0,0.05); }
+  .ranking-card.rank-2 { border-color: var(--silver); background: rgba(192,192,192,0.04); }
+  .ranking-card.rank-3 { border-color: #cd7f32; background: rgba(205,127,50,0.04); }
+
+  .rank-pos {
+    font-family: 'Gasoek One', sans-serif;
+    font-size: 1.5rem;
+    width: 36px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .rank-1 .rank-pos { color: var(--yellow); text-shadow: 0 0 10px rgba(255,215,0,0.5); }
+  .rank-2 .rank-pos { color: var(--silver); }
+  .rank-3 .rank-pos { color: #cd7f32; }
+
+  .rank-name {
+    flex: 1;
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+
+  .rank-pts {
+    font-family: 'Gasoek One', sans-serif;
+    font-size: 1.4rem;
+    color: var(--green);
+    text-align: right;
+    line-height: 1;
+  }
+
+  .rank-pts-label {
+    font-size: 0.65rem;
+    color: var(--silver);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .rank-breakdown {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  .rank-stat {
+    background: var(--gray-mid);
+    border-radius: 8px;
+    padding: 0.2rem 0.55rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    display: flex;
+    gap: 0.3rem;
+  }
+
+  .stat-exact { color: #FFD700; }
+  .stat-result { color: var(--green); }
+  .stat-winner { color: var(--orange); }
+
+  .rank-you-badge {
+    background: rgba(0,200,81,0.2);
+    color: var(--green);
+    border-radius: 8px;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+  }
+
+  /* ===== MY BETS ===== */
+  .my-bets-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.7rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .summary-card {
+    background: var(--gray-dark);
+    border: 1.5px solid var(--gray-light);
+    border-radius: 10px;
+    padding: 0.9rem;
+    text-align: center;
+  }
+
+  .summary-val {
+    font-family: 'Gasoek One', sans-serif;
+    font-size: 2rem;
+    line-height: 1;
+    margin-bottom: 0.2rem;
+  }
+
+  .summary-label {
+    font-size: 0.72rem;
+    color: var(--silver);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .bet-review-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+  .bet-review-card {
+    background: var(--gray-dark);
+    border-radius: 10px;
+    border: 1.5px solid var(--gray-light);
+    padding: 0.7rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+  }
+
+  .bet-match-name {
+    flex: 1;
+    font-size: 0.82rem;
+    font-weight: 700;
+    min-width: 140px;
+  }
+
+  .bet-score {
+    font-family: 'Gasoek One', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+    color: var(--white);
+  }
+
+  .bet-real-score {
+    font-family: 'Gasoek One', sans-serif;
+    font-size: 1.1rem;
+    color: var(--silver);
+  }
+
+  .pts-chip {
+    border-radius: 20px;
+    padding: 0.2rem 0.6rem;
+    font-family: 'Gasoek One', sans-serif;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+  }
+
+  .pts-5 { background: rgba(255,215,0,0.2); color: var(--yellow); border: 1px solid var(--yellow); }
+  .pts-3 { background: rgba(0,200,81,0.15); color: var(--green); border: 1px solid var(--green); }
+  .pts-1 { background: rgba(255,107,0,0.15); color: var(--orange); border: 1px solid var(--orange); }
+  .pts-0 { background: rgba(255,34,34,0.1); color: var(--red); border: 1px solid rgba(255,34,34,0.4); }
+  .pts-pending { background: rgba(255,255,255,0.05); color: var(--silver); border: 1px solid var(--gray-light); }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 700px) {
+    header {
+      grid-template-columns: 1fr;
+      justify-items: center;
+      gap: 0.7rem;
+      padding: 0.7rem 0.8rem;
+    }
+
+    .logo,
+    .header-user {
+      grid-column: 1;
+      justify-self: center;
+    }
+
+    nav {
+      top: 111px;
+      justify-content: flex-start;
+      padding: 0 0.4rem;
+    }
+  }
+
+  @media (max-width: 500px) {
+    main { padding: 0.8rem; }
+    .groups-grid { grid-template-columns: 1fr; }
+    .match-teams { flex-wrap: wrap; }
+    .score-input-wrap { flex-wrap: wrap; }
+    .ranking-card { flex-wrap: wrap; gap: 0.5rem; }
+  }
+
+  /* ===== TOAST ===== */
+  .toast {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--gray-dark);
+    border: 1.5px solid var(--green);
+    border-radius: 30px;
+    padding: 0.6rem 1.4rem;
+    color: var(--green);
+    font-weight: 700;
+    font-size: 0.85rem;
+    z-index: 9999;
+    transition: transform 0.3s ease;
+    box-shadow: 0 4px 20px rgba(0,200,81,0.3);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ===== EMPTY STATE ===== */
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--silver);
+  }
+
+  .empty-icon {
+    font-size: 3rem;
+    margin-bottom: 0.7rem;
+    opacity: 0.5;
+  }
+
+  .empty-text {
+    font-size: 0.9rem;
+  }
+
