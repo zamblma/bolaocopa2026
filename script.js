@@ -588,6 +588,22 @@ function authErrorMessage(error) {
 // ============================================================
 //  AUTH
 // ============================================================
+function togglePassword(id, btn) {
+  const input = document.getElementById(id);
+  if (input.type === 'password') { input.type = 'text'; btn.textContent = '🙈'; }
+  else { input.type = 'password'; btn.textContent = '👁'; }
+}
+
+function updateCountdown() {
+  const el = document.getElementById('countdownBanner');
+  if (!el) return;
+  const firstMatch = new Date('2026-06-11T12:00:00-03:00');
+  const now = new Date();
+  if (now > firstMatch) { el.textContent = '🏆 COPA 2026 ACONTECENDO!'; return; }
+  const diff = Math.ceil((firstMatch - now) / (1000 * 60 * 60 * 24));
+  el.textContent = diff > 1 ? `⏳ Faltam ${diff} dias para a Copa!` : diff === 1 ? '⏳ Falta 1 dia para a Copa!' : '🔥 É HOJE! COPA 2026!';
+}
+
 function toggleForms() {
   const lf = document.getElementById('loginForm');
   const rf = document.getElementById('registerForm');
@@ -608,6 +624,14 @@ async function doLogin() {
   if (!email || !pass) { showError(errEl, 'Preencha todos os campos.'); return; }
   if (!auth) { showError(errEl, 'Firebase Auth não está carregado.'); return; }
 
+  if (document.getElementById('rememberEmail').checked) {
+    localStorage.setItem('bolao_login_email', email);
+    localStorage.setItem('bolao_login_pass', pass);
+  } else {
+    localStorage.removeItem('bolao_login_email');
+    localStorage.removeItem('bolao_login_pass');
+  }
+
   try {
     const credential = await auth.signInWithEmailAndPassword(email, pass);
     currentUser = credential.user.uid;
@@ -617,7 +641,10 @@ async function doLogin() {
     currentUserName = profile?.name || credential.user.email;
 
     errEl.style.display = 'none';
-    enterApp();
+    const flash = document.createElement('div');
+    flash.className = 'transform-flash';
+    document.body.appendChild(flash);
+    setTimeout(() => { flash.remove(); enterApp(); }, 800);
   } catch (error) {
     showError(errEl, authErrorMessage(error));
   }
@@ -669,8 +696,10 @@ async function doRegister() {
 
     errEl.style.display = 'none';
     sucEl.style.display = 'none';
-    enterApp();
-    showToast(isFirst ? 'Conta criada! Você é o admin.' : 'Conta criada!');
+    const flash = document.createElement('div');
+    flash.className = 'transform-flash';
+    document.body.appendChild(flash);
+    setTimeout(() => { flash.remove(); enterApp(); showToast(isFirst ? 'Conta criada! Você é o admin.' : 'Conta criada!'); }, 800);
   } catch (error) {
     showError(errEl, authErrorMessage(error));
   }
@@ -1716,6 +1745,16 @@ function initTheme() {
 // ============================================================
 dataReadyPromise = initFirebaseData();
 initTheme();
+updateCountdown();
+const savedEmail = localStorage.getItem('bolao_login_email');
+const savedPass = localStorage.getItem('bolao_login_pass');
+if (savedEmail) {
+  document.getElementById('loginEmail').value = savedEmail;
+  document.getElementById('rememberEmail').checked = true;
+  if (savedPass) document.getElementById('loginPass').value = savedPass;
+}
+
+setInterval(updateCountdown, 60000);
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter') {
