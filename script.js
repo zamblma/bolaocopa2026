@@ -354,6 +354,7 @@ let adminRef = null;
 let dataReadyPromise = null;
 let isFirebaseReady = false;
 let isApplyingRemoteData = false;
+let _authHandled = false;
 
 let appData = {
   bolao_users: {},
@@ -633,6 +634,7 @@ async function doLogin() {
   }
 
   try {
+    _authHandled = true;
     const credential = await auth.signInWithEmailAndPassword(email, pass);
     currentUser = credential.user.uid;
     await initFirebaseData();
@@ -666,6 +668,7 @@ async function doRegister() {
   if (!auth) { showError(errEl, 'Firebase Auth não está carregado.'); return; }
 
   try {
+    _authHandled = true;
     const credential = await auth.createUserWithEmailAndPassword(email, pass);
     currentUser = credential.user.uid;
 
@@ -706,6 +709,8 @@ async function doRegister() {
 }
 
 function logout() {
+  sessionStorage.removeItem('bolao_session');
+  _authHandled = false;
   isFirebaseReady = false;
   if (unsubscribeUsers) unsubscribeUsers();
   if (unsubscribePalpites) unsubscribePalpites();
@@ -718,6 +723,7 @@ function logout() {
 }
 
 function enterApp() {
+  sessionStorage.setItem('bolao_session', '1');
   document.getElementById('loginPage').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   document.getElementById('headerUserName').textContent = currentUserName || currentUser;
@@ -1757,9 +1763,44 @@ if (savedEmail) {
 setInterval(updateCountdown, 60000);
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'Enter') {
+  if (e.key === 'Enter' && document.getElementById('loginPage').style.display !== 'none') {
     const lf = document.getElementById('loginForm');
     if (lf.style.display !== 'none') doLogin();
     else doRegister();
   }
+});
+
+dataReadyPromise.then(() => {
+  if (!auth || !sessionStorage.getItem('bolao_session')) {
+    document.getElementById('loginPage').style.display = 'flex';
+    return;
+  }
+  if (auth.currentUser && !_authHandled) {
+    _authHandled = true;
+    if (document.getElementById('app').style.display !== 'none') return;
+    currentUser = auth.currentUser.uid;
+    const profile = appData.bolao_users[currentUser];
+    currentUserName = profile?.name || auth.currentUser.email || 'Participante';
+    enterApp();
+    return;
+  }
+  let loginTimer = setTimeout(() => {
+    document.getElementById('loginPage').style.display = 'flex';
+    sessionStorage.removeItem('bolao_session');
+  }, 300);
+  const unsub = auth.onAuthStateChanged(function autoLogin(user) {
+    if (!user) return;
+    clearTimeout(loginTimer);
+    unsub();
+    if (_authHandled) return;
+    if (document.getElementById('app').style.display !== 'none') return;
+    _authHandled = true;
+    currentUser = user.uid;
+    isFirebaseReady = false;
+    initFirebaseData().then(() => {
+      const profile = appData.bolao_users[currentUser];
+      currentUserName = profile?.name || user.email || 'Participante';
+      enterApp();
+    });
+  });
 });
