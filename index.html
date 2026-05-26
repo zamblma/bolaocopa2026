@@ -74,19 +74,25 @@
       <div class="logo-text">BOLÃO <span>2026</span></div>
     </div>
     <div class="header-user">
+      <button class="btn-hamburger" id="hamburgerBtn" onclick="toggleSidebar()" title="Menu">☰</button>
+      <button class="btn-theme" id="themeToggle" onclick="toggleTheme()" title="Alternar tema">🌙</button>
       <div class="user-badge" id="headerUserName">—</div>
       <button class="btn-logout" onclick="logout()">Sair</button>
     </div>
   </header>
 
-  <nav>
-    <button class="nav-btn active" data-page="grupos" onclick="showPage('grupos',this)">⚽ Grupos</button>
-    <button class="nav-btn" data-page="palpites" onclick="showPage('palpites',this)">🎯 Meus Palpites</button>
-    <button class="nav-btn" data-page="resultados" onclick="showPage('resultados',this)">📋 Resultados</button>
-    <button class="nav-btn" data-page="ranking" onclick="showPage('ranking',this)">🏆 Ranking</button>
-    <button class="nav-btn" data-page="minhasApostas" onclick="showPage('minhasApostas',this)">📊 Meu Histórico</button>
-    <button class="nav-btn" data-page="bracket" onclick="showPage('bracket',this)">🌳 Chaveamento</button>
-    <button class="nav-btn" data-page="regras" onclick="showPage('regras',this)">📋 Regras</button>
+  <nav id="mainNav">
+    <div class="nav-overlay" id="navOverlay" onclick="toggleSidebar()"></div>
+    <div class="nav-inner">
+      <div class="nav-header-mobile">☰ Menu</div>
+      <button class="nav-btn active" data-page="grupos" onclick="showPage('grupos',this)">⚽ Grupos</button>
+      <button class="nav-btn" data-page="palpites" onclick="showPage('palpites',this)">🎯 Meus Palpites</button>
+      <button class="nav-btn" data-page="resultados" onclick="showPage('resultados',this)">📋 Resultados</button>
+      <button class="nav-btn" data-page="ranking" onclick="showPage('ranking',this)">🏆 Ranking</button>
+      <button class="nav-btn" data-page="minhasApostas" onclick="showPage('minhasApostas',this)">👤 Meu Perfil</button>
+      <button class="nav-btn" data-page="bracket" onclick="showPage('bracket',this)">🌳 Chaveamento</button>
+      <button class="nav-btn" data-page="regras" onclick="showPage('regras',this)">📋 Regras</button>
+    </div>
   </nav>
 
   <main>
@@ -132,10 +138,10 @@
       <div class="ranking-list" id="rankingList"></div>
     </div>
 
-    <!-- MEU HISTÓRICO PAGE -->
+    <!-- MEU PERFIL PAGE -->
     <div class="page" id="page-minhasApostas">
-      <div class="section-title">📊 MEU HISTÓRICO</div>
-      <div class="section-sub">Seus palpites e pontuação detalhada</div>
+      <div class="section-title">👤 MEU PERFIL</div>
+      <div class="section-sub">Seus dados, palpites e pontuação detalhada</div>
       <div class="my-bets-summary" id="myBetsSummary"></div>
       <div class="bet-review-list" id="betReviewList"></div>
     </div>

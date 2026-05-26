@@ -447,11 +447,13 @@ async function initFirebaseData() {
     appData.bolao_users = {};
     usersSnap.forEach(doc => {
       const data = doc.data();
-      appData.bolao_users[doc.id] = {
-        name: data.name || data.email || 'Participante',
-        email: data.email || '',
-        isAdmin: data.isAdmin === true
-      };
+        appData.bolao_users[doc.id] = {
+          name: data.name || data.email || 'Participante',
+          email: data.email || '',
+          isAdmin: data.isAdmin === true,
+          avatar: data.avatar || '',
+          champion: data.champion || ''
+        };
     });
 
     appData.bolao_palpites = {};
@@ -473,7 +475,9 @@ async function initFirebaseData() {
         appData.bolao_users[doc.id] = {
           name: data.name || data.email || 'Participante',
           email: data.email || '',
-          isAdmin: data.isAdmin === true
+          isAdmin: data.isAdmin === true,
+          avatar: data.avatar || '',
+          champion: data.champion || ''
         };
       });
       saveLocalData();
@@ -527,6 +531,13 @@ function saveRemoteData(key) {
       matches: appData.bolao_results || {},
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
+  }
+
+  if (key === 'bolao_users' && currentUser) {
+    const myData = appData.bolao_users[currentUser];
+    if (myData) {
+      writePromise = usersRef.doc(currentUser).set(myData, { merge: true });
+    }
   }
 
   if (!writePromise) return;
@@ -684,6 +695,14 @@ function showPage(name, btn) {
   document.getElementById('page-' + name).classList.add('active');
   if (btn) btn.classList.add('active');
 
+  const inner = document.querySelector('.nav-inner');
+  const overlay = document.getElementById('navOverlay');
+  if (inner && overlay) {
+    inner.classList.remove('open');
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
   if (name === 'ranking') renderRanking();
   if (name === 'minhasApostas') renderMyBets();
   if (name === 'bracket') renderBracket();
@@ -691,6 +710,27 @@ function showPage(name, btn) {
   if (name === 'palpites') renderMatches('Grupos');
   if (name === 'resultados') renderResults('Grupos');
   if (name === 'regras') { /* static page, nothing to render */ }
+}
+
+function toggleSidebar() {
+  const nav = document.getElementById('mainNav');
+  const overlay = document.getElementById('navOverlay');
+  const inner = nav.querySelector('.nav-inner');
+  inner.classList.toggle('open');
+  overlay.classList.toggle('open');
+  document.body.style.overflow = inner.classList.contains('open') ? 'hidden' : '';
+}
+
+function showSkeleton(containerId, count = 6) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = Array(count).fill(0).map(() => `
+    <div class="skeleton-card">
+      <div class="skeleton-line w40"></div>
+      <div class="skeleton-line h3"></div>
+      <div class="skeleton-line w60"></div>
+    </div>
+  `).join('');
 }
 
 // ============================================================
@@ -716,7 +756,7 @@ function renderGroups() {
 
   const nextMatches = getNextMatches(5);
 
-  const allTeams = Object.values(GROUPS).flatMap(g => g.teams);
+  const allTeams = Object.values(GROUPS).flatMap(g => g.teams).sort((a, b) => a.name.localeCompare(b.name));
 
   const currentPick = myProfile.champion || '';
   const champWinner = results._champion;
@@ -759,10 +799,10 @@ function renderGroups() {
       </div>
     </div>` : '';
 
-  grid.innerHTML = championHtml + nextHtml + Object.entries(GROUPS).map(([g, data]) => {
+  grid.innerHTML = championHtml + nextHtml + Object.entries(GROUPS).map(([g, data], gi) => {
     const standings = isGroupComplete(g, results) ? getGroupStandings(g, results) : null;
     return `
-    <div class="group-card">
+    <div class="group-card card-stagger" style="--i:${gi}">
       <div class="group-header">
         <div class="group-letter">${g}</div>
         <div class="group-name">Grupo ${g}</div>
@@ -845,6 +885,18 @@ function saveChampion() {
   renderGroups();
 }
 
+function selectAvatar(emoji) {
+  const users = getData('bolao_users', {});
+  if (!users[currentUser]) users[currentUser] = {};
+  users[currentUser].avatar = emoji;
+  setData('bolao_users', users);
+  document.querySelectorAll('.avatar-option').forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll('.avatar-option').forEach(el => { if (el.textContent === emoji) el.classList.add('selected'); });
+  const display = document.getElementById('currentAvatarDisplay');
+  if (display) display.textContent = emoji;
+  showToast(`🎭 Avatar: ${emoji}`);
+}
+
 function updateChampionFlagPreview() {
   const select = document.getElementById('championSelect');
   const preview = document.getElementById('championFlagPreview');
@@ -864,6 +916,7 @@ function switchPhase(phase, btn, type) {
   btn.classList.add('active');
   if (type === 'match') renderMatches(phase);
   else renderResults(phase);
+  document.querySelector('.section-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function renderMatches(phase) {
@@ -874,13 +927,13 @@ function renderMatches(phase) {
 
   if (!matches.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">⚽</div><div class="empty-text">Nenhum jogo nesta fase.</div></div>'; return; }
 
-  list.innerHTML = matches.map(m => {
+  list.innerHTML = matches.map((m, mi) => {
     const p = userP[m.id];
     const hasP = p !== undefined;
     const isLocked = m.date && new Date() > new Date(m.date + '-03:00');
     const timeLabel = m.date ? formatDateBR(m.date) : '';
     return `
-      <div class="match-card ${hasP ? 'has-palpite' : ''}" id="mc-${m.id}">
+      <div class="match-card card-stagger ${hasP ? 'has-palpite' : ''}" style="--i:${mi}" id="mc-${m.id}">
         <div class="match-header">
           <span>${m.label}</span>
           ${hasP ? `<span class="palpite-saved">✓ ${p.home}×${p.away}</span>` : ''}
@@ -918,6 +971,43 @@ function renderMatches(phase) {
   }).join('');
 }
 
+// ============================================================
+function savePalpite(matchId) {
+  const h = document.getElementById(`ph-${matchId}`).value;
+  const a = document.getElementById(`pa-${matchId}`).value;
+  if (h === '' || a === '') { showToast('Preencha o placar!', true); return; }
+
+  const match = getMatchById(matchId);
+  if (match && match.date && new Date() > new Date(match.date + '-03:00')) {
+    showToast('⛔ Jogo já começou! Palpite bloqueado.', true);
+    return;
+  }
+
+  const palpites = getData('bolao_palpites', {});
+  if (!palpites[currentUser]) palpites[currentUser] = {};
+  palpites[currentUser][matchId] = { home: parseInt(h), away: parseInt(a) };
+  setData('bolao_palpites', palpites);
+
+  showToast(`✅ Palpite salvo: ${h} × ${a}`);
+  confetti(30);
+  renderMatches(currentPhase);
+}
+
+// ============================================================
+function confetti(count = 50) {
+  const container = document.createElement('div');
+  container.className = 'confetti-container';
+  const colors = ['#00C851','#39FF14','#FFD700','#FF6B00','#FF2222','#c0c0c0','#FF69B4','#00BFFF','#FF4500','#ADFF2F'];
+  for (let i = 0; i < count; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.cssText = `left:${Math.random()*100}%;background:${colors[Math.floor(Math.random()*colors.length)]};width:${6+Math.random()*6}px;height:${6+Math.random()*6}px;animation-delay:${Math.random()*0.4}s;border-radius:${Math.random()>0.5?'50%':'0'};`;
+    container.appendChild(piece);
+  }
+  document.body.appendChild(container);
+  setTimeout(() => container.remove(), 2500);
+}
+
 function renderResultPhaseTabs() {
   const tabs = document.getElementById('resultPhaseTabs');
   tabs.innerHTML = PHASES.map((p, i) => `
@@ -938,13 +1028,13 @@ function renderResults(phase) {
   const list = document.getElementById('resultList');
   const isAdmin = currentUserIsAdmin();
 
-  list.innerHTML = matches.map(m => {
+  list.innerHTML = matches.map((m, mi) => {
     const r = results[m.id];
     const hasR = r !== undefined;
     const matchDate = m.date ? new Date(m.date + '-03:00') : null;
     const started = matchDate && new Date() > matchDate;
     return `
-      <div class="result-card">
+      <div class="result-card card-stagger" style="--i:${mi}">
         <div class="match-header" style="margin-bottom:0.5rem;">
           <span style="font-weight:700;font-size:0.85rem;">${flagMarkup(m.home, 'flag flag-inline')} ${m.home.name} × ${m.away.name} ${flagMarkup(m.away, 'flag flag-inline')}</span>
           ${hasR ? `<span class="result-saved-badge">✓ ${r.home}×${r.away}</span>` : ''}
@@ -977,7 +1067,7 @@ function renderResults(phase) {
   }).join('');
 
   if (isAdmin) {
-    const allTeams = Object.values(GROUPS).flatMap(g => g.teams);
+    const allTeams = Object.values(GROUPS).flatMap(g => g.teams).sort((a, b) => a.name.localeCompare(b.name));
     const currentChamp = results._champion ? results._champion.name || results._champion : '';
     list.innerHTML += `
       <div class="result-card champ-admin-card">
@@ -1008,8 +1098,9 @@ function showMatchBets(matchId) {
     if (!p) return;
     const profile = users[uid] || {};
     const name = profile.name || uid.slice(0, 8);
+    const avatar = profile.avatar || '';
     const pts = r ? calcPoints(p, r) : null;
-    list.push({ name, home: p.home, away: p.away, pts, isYou: uid === currentUser });
+    list.push({ name, avatar, home: p.home, away: p.away, pts, isYou: uid === currentUser });
   });
 
   list.sort((a, b) => (b.pts||0) - (a.pts||0) || a.name.localeCompare(b.name));
@@ -1029,6 +1120,7 @@ function showMatchBets(matchId) {
     <div class="bets-list">
       ${list.length ? list.map(b => `
         <div class="bets-item ${b.isYou ? 'bets-you' : ''} ${b.pts === 5 ? 'bets-exact' : b.pts === 3 ? 'bets-good' : ''}">
+          <span class="avatar-circle avatar-circle-sm">${b.avatar || '⚽'}</span>
           <span class="bets-name">${b.isYou ? '⭐ ' : ''}${b.name}</span>
           <span class="bets-score">${b.home} × ${b.away}</span>
           ${b.pts !== null ? `<span class="bets-pts ${'bpts-'+b.pts}">${b.pts > 0 ? '+'+b.pts : '0'}</span>` : '<span class="bets-pts bpts-pending">⏳</span>'}
@@ -1048,6 +1140,7 @@ function setChampionWinner() {
   results._champion = team;
   setData('bolao_results', results);
   showToast(`🏆 Campeão definido: ${name}! Bônus de ${CHAMPION_BONUS}pts para quem acertou!`);
+  confetti(100);
   renderResults(currentPhase);
 }
 
@@ -1080,6 +1173,7 @@ function saveResult(matchId) {
 
   renderResults(currentPhase);
   showToast('Resultado salvo! Pontos recalculados.');
+  confetti(60);
 }
 
 // ============================================================
@@ -1189,6 +1283,7 @@ function renderRanking() {
     name: profile.name || profile.email || 'Participante',
     isAdmin: profile.isAdmin === true,
     champion: profile.champion || '',
+    avatar: profile.avatar || '',
     ...(rankingPhase ? getUserScoreByPhase(uid, rankingPhase) : getUserScore(uid))
   }));
   scored.sort((a, b) => b.total - a.total);
@@ -1209,10 +1304,11 @@ function renderRanking() {
     const badges = rankingPhase ? [] : getUserAchievements(u.uid);
     const champBonus = !rankingPhase && u.champPts ? `+${u.champPts} champ` : '';
     return `
-    <div class="ranking-card ${i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':''}">
+    <div class="ranking-card card-stagger ${i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':''}" style="--i:${i}">
       <div class="rank-pos">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
+      <div class="avatar-circle avatar-circle-sm">${u.avatar || '⚽'}</div>
       <div style="flex:1;">
-        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.4rem;flex-wrap:wrap;">
           <div class="rank-name">${u.name}</div>
           ${u.isAdmin ? '<div class="rank-you-badge">ADMIN</div>' : ''}
           ${u.uid === currentUser ? '<div class="rank-you-badge">VOCÊ</div>' : ''}
@@ -1376,6 +1472,26 @@ function renderMyBets() {
     </div>
   `;
 
+  // Avatar picker
+  const users = getData('bolao_users', {});
+  const myProfile = users[currentUser] || {};
+  const currentAvatar = myProfile.avatar || '';
+  const AVATARS = ['⚽','🏀','🎾','🎯','🎱','🚀','🔥','💪','👑','🦁','🐯','🐺','🦅','🐉','🐲','🎮','🏆','💎','🌟','🌈','⭐','⚡','🦈','🐬','🐸','🦊','🐶','🐱','🦄','🐼','🐨','🐧','🦖','🦋','🐝','🦩','🦚','🌵','🍀','🌺','🍕','🎸','🎨','🚗','✈️','🚁','🛸','⚔️','🛡️','🧠','👽','🤖','🎃','👻'];
+
+  if (!document.getElementById('avatarPickerContainer')) {
+    const avatarWrap = document.createElement('div');
+    avatarWrap.id = 'avatarPickerContainer';
+    avatarWrap.className = 'avatar-picker-wrap';
+    avatarWrap.innerHTML = `
+      <div class="avatar-picker-title">🎭 Seu Avatar</div>
+      <div class="avatar-picker-grid">
+        ${AVATARS.map(a => `<div class="avatar-option ${a === currentAvatar ? 'selected' : ''}" onclick="selectAvatar('${a}')">${a}</div>`).join('')}
+      </div>
+      <div style="margin-top:0.5rem;font-size:0.7rem;color:var(--silver);">Atual: <span id="currentAvatarDisplay" style="font-size:1.2rem;">${currentAvatar || '⚽'}</span></div>
+    `;
+    document.getElementById('myBetsSummary').after(avatarWrap);
+  }
+
   const extraStats = document.createElement('div');
   extraStats.className = 'extra-stats';
   extraStats.innerHTML = `
@@ -1414,7 +1530,7 @@ function renderMyBets() {
     return;
   }
 
-  betList.innerHTML = matchesWithBets.map(m => {
+  betList.innerHTML = matchesWithBets.map((m, mi) => {
     const p = palpites[m.id];
     const r = results[m.id];
     const pts = calcPoints(p, r);
@@ -1426,7 +1542,7 @@ function renderMyBets() {
     else if (pts === 0) { chipClass = 'pts-0'; chipLabel = '0'; }
 
     return `
-      <div class="bet-review-card">
+      <div class="bet-review-card card-stagger" style="--i:${mi}">
         <div class="bet-match-name">${flagMarkup(m.home, 'flag flag-inline')} ${m.home.name} × ${m.away.name} ${flagMarkup(m.away, 'flag flag-inline')}</div>
         <div style="display:flex;align-items:center;gap:0.4rem;">
           <div style="font-size:0.68rem;color:var(--silver);">Palpite:</div>
@@ -1504,9 +1620,36 @@ function showToast(msg, error = false) {
 }
 
 // ============================================================
+//  THEME
+// ============================================================
+function toggleTheme() {
+  const html = document.documentElement;
+  const isLight = html.getAttribute('data-theme') === 'light';
+  if (isLight) {
+    html.removeAttribute('data-theme');
+    localStorage.setItem('bolao_theme', 'dark');
+    document.getElementById('themeToggle').textContent = '🌙';
+  } else {
+    html.setAttribute('data-theme', 'light');
+    localStorage.setItem('bolao_theme', 'light');
+    document.getElementById('themeToggle').textContent = '☀️';
+  }
+}
+
+function initTheme() {
+  const saved = localStorage.getItem('bolao_theme');
+  if (saved === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+    const btn = document.getElementById('themeToggle');
+    if (btn) btn.textContent = '☀️';
+  }
+}
+
+// ============================================================
 //  INIT
 // ============================================================
 dataReadyPromise = initFirebaseData();
+initTheme();
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter') {
