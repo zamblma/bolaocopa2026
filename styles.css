@@ -224,6 +224,8 @@
     border-radius: 50%;
   }
 
+.login-title span {color: var(--yellow);}
+
   .login-title {
     font-family: 'Gasoek One', sans-serif;
     font-size: 2.2rem;
