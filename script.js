@@ -345,6 +345,7 @@ function getMatchesForPhase(phase) {
 const STORAGE_KEYS = ['bolao_users', 'bolao_palpites', 'bolao_results'];
 
 let db = null;
+let unsubscribeUsers = null, unsubscribePalpites = null, unsubscribeResults = null;
 let auth = null;
 let usersRef = null;
 let palpitesRef = null;
@@ -452,6 +453,7 @@ async function initFirebaseData() {
           email: data.email || '',
           isAdmin: data.isAdmin === true,
           avatar: data.avatar || '',
+          accentColor: data.accentColor || '',
           champion: data.champion || ''
         };
     });
@@ -467,7 +469,7 @@ async function initFirebaseData() {
     saveLocalData();
     isApplyingRemoteData = false;
 
-    usersRef.onSnapshot(snapshot => {
+    unsubscribeUsers = usersRef.onSnapshot(snapshot => {
       isApplyingRemoteData = true;
       appData.bolao_users = {};
       snapshot.forEach(doc => {
@@ -477,15 +479,20 @@ async function initFirebaseData() {
           email: data.email || '',
           isAdmin: data.isAdmin === true,
           avatar: data.avatar || '',
+          accentColor: data.accentColor || '',
           champion: data.champion || ''
         };
       });
       saveLocalData();
       isApplyingRemoteData = false;
       refreshCurrentView();
+    }, error => {
+      if (error.code !== 'permission-denied' && error.code !== 'aborted' && error.code !== 'unavailable') {
+        console.error('Erro no snapshot users:', error);
+      }
     });
 
-    palpitesRef.onSnapshot(snapshot => {
+    unsubscribePalpites = palpitesRef.onSnapshot(snapshot => {
       isApplyingRemoteData = true;
       appData.bolao_palpites = {};
       snapshot.forEach(doc => {
@@ -494,9 +501,13 @@ async function initFirebaseData() {
       saveLocalData();
       isApplyingRemoteData = false;
       refreshCurrentView();
+    }, error => {
+      if (error.code !== 'permission-denied' && error.code !== 'aborted' && error.code !== 'unavailable') {
+        console.error('Erro no snapshot palpites:', error);
+      }
     });
 
-    resultsRef.onSnapshot(snapshot => {
+    unsubscribeResults = resultsRef.onSnapshot(snapshot => {
       if (!snapshot.exists) return;
       isApplyingRemoteData = true;
       appData.bolao_results = snapshot.data().matches || {};
@@ -504,7 +515,9 @@ async function initFirebaseData() {
       isApplyingRemoteData = false;
       refreshCurrentView();
     }, error => {
-      console.error('Erro ao sincronizar resultados:', error);
+      if (error.code !== 'permission-denied' && error.code !== 'aborted' && error.code !== 'unavailable') {
+        console.error('Erro ao sincronizar resultados:', error);
+      }
     });
 
     isFirebaseReady = true;
@@ -664,11 +677,15 @@ async function doRegister() {
 }
 
 function logout() {
-  if (auth) auth.signOut();
+  isFirebaseReady = false;
+  if (unsubscribeUsers) unsubscribeUsers();
+  if (unsubscribePalpites) unsubscribePalpites();
+  if (unsubscribeResults) unsubscribeResults();
   currentUser = null;
   currentUserName = null;
   document.getElementById('app').style.display = 'none';
   document.getElementById('loginPage').style.display = 'flex';
+  if (auth) auth.signOut().catch(() => {});
 }
 
 function enterApp() {
@@ -883,6 +900,17 @@ function saveChampion() {
   setData('bolao_users', users);
   showToast(`Campeão definido: ${teamName} 👑`);
   renderGroups();
+}
+
+function selectAccentColor(hex) {
+  const users = getData('bolao_users', {});
+  if (!users[currentUser]) users[currentUser] = {};
+  if (hex) users[currentUser].accentColor = hex;
+  else delete users[currentUser].accentColor;
+  setData('bolao_users', users);
+  document.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll('.color-option').forEach(el => { if (el.style.background === hex || (!hex && el.style.background === 'var(--gray-mid)')) el.classList.add('selected'); });
+  showToast(hex ? `🎨 Cor definida!` : '🎨 Cor padrão restaurada');
 }
 
 function selectAvatar(emoji) {
@@ -1256,6 +1284,7 @@ function getUserAchievements(userName) {
 //  RANKING
 // ============================================================
 let rankingPhase = '';
+let lastRanking = {};
 
 function getUserScoreByPhase(userName, phase) {
   const palpites = getData('bolao_palpites', {})[userName] || {};
@@ -1278,12 +1307,16 @@ function renderRanking() {
   const results = getData('bolao_results', {});
   const champWinner = results._champion;
 
+  // Save old positions before rendering
+  const oldPositions = { ...lastRanking };
+
   const scored = userList.map(([uid, profile]) => ({
     uid,
     name: profile.name || profile.email || 'Participante',
     isAdmin: profile.isAdmin === true,
     champion: profile.champion || '',
     avatar: profile.avatar || '',
+    accentColor: profile.accentColor || '',
     ...(rankingPhase ? getUserScoreByPhase(uid, rankingPhase) : getUserScore(uid))
   }));
   scored.sort((a, b) => b.total - a.total);
@@ -1303,15 +1336,17 @@ function renderRanking() {
   ` + scored.map((u, i) => {
     const badges = rankingPhase ? [] : getUserAchievements(u.uid);
     const champBonus = !rankingPhase && u.champPts ? `+${u.champPts} champ` : '';
+    const accent = u.accentColor || 'var(--green)';
+    const isYou = u.uid === currentUser;
     return `
     <div class="ranking-card card-stagger ${i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':''}" style="--i:${i}">
       <div class="rank-pos">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
-      <div class="avatar-circle avatar-circle-sm">${u.avatar || '⚽'}</div>
+      <div class="avatar-circle avatar-circle-sm" style="${isYou && accent ? `border-color:${accent};box-shadow:0 0 10px ${accent}60` : ''}">${u.avatar || '⚽'}</div>
       <div style="flex:1;">
         <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.4rem;flex-wrap:wrap;">
-          <div class="rank-name">${u.name}</div>
+          <div class="rank-name" style="${isYou && accent ? `color:${accent}` : ''}">${u.name}</div>
           ${u.isAdmin ? '<div class="rank-you-badge">ADMIN</div>' : ''}
-          ${u.uid === currentUser ? '<div class="rank-you-badge">VOCÊ</div>' : ''}
+          ${isYou ? `<div class="rank-you-badge" style="${accent ? `background:${accent}30;border-color:${accent};color:${accent}` : ''}">VOCÊ</div>` : ''}
         </div>
         <div class="rank-breakdown">
           <div class="rank-stat"><span class="stat-exact">★</span><span class="stat-exact">${u.exact}</span><span style="color:var(--silver);">Exatos</span></div>
@@ -1328,6 +1363,24 @@ function renderRanking() {
       </div>
     </div>`;
   }).join('');
+
+  // Check for overtakes
+  if (!rankingPhase && oldPositions[currentUser] !== undefined) {
+    const myOld = oldPositions[currentUser];
+    const myNew = scored.findIndex(u => u.uid === currentUser) + 1;
+    scored.forEach(u => {
+      if (u.uid === currentUser) return;
+      const oldPos = oldPositions[u.uid];
+      if (oldPos === undefined) return;
+      if (oldPos > myOld && scored.findIndex(x => x.uid === u.uid) + 1 <= myOld) {
+        showToast(`🚀 ${u.name} passou você no ranking! (${myOld}º → ${scored.findIndex(x => x.uid === u.uid) + 1}º)`);
+      }
+    });
+  }
+
+  // Update lastRanking
+  lastRanking = {};
+  scored.forEach((u, i) => { lastRanking[u.uid] = i + 1; });
 }
 
 function setRankingPhase(phase) {
@@ -1472,11 +1525,19 @@ function renderMyBets() {
     </div>
   `;
 
-  // Avatar picker
+  // Avatar + color picker
   const users = getData('bolao_users', {});
   const myProfile = users[currentUser] || {};
   const currentAvatar = myProfile.avatar || '';
+  const currentColor = myProfile.accentColor || '';
   const AVATARS = ['⚽','🏀','🎾','🎯','🎱','🚀','🔥','💪','👑','🦁','🐯','🐺','🦅','🐉','🐲','🎮','🏆','💎','🌟','🌈','⭐','⚡','🦈','🐬','🐸','🦊','🐶','🐱','🦄','🐼','🐨','🐧','🦖','🦋','🐝','🦩','🦚','🌵','🍀','🌺','🍕','🎸','🎨','🚗','✈️','🚁','🛸','⚔️','🛡️','🧠','👽','🤖','🎃','👻'];
+  const COLORS = [
+    { name:'Verde', hex:'#00C851' }, { name:'Dourado', hex:'#FFD700' },
+    { name:'Vermelho', hex:'#FF4444' }, { name:'Azul', hex:'#33B5E5' },
+    { name:'Roxo', hex:'#AA66CC' }, { name:'Laranja', hex:'#FF8800' },
+    { name:'Rosa', hex:'#FF69B4' }, { name:'Ciano', hex:'#00BFFF' },
+    { name:'Branco', hex:'#e0e0e0' }, { name:'Deep Orange', hex:'#FF6D00' }
+  ];
 
   if (!document.getElementById('avatarPickerContainer')) {
     const avatarWrap = document.createElement('div');
@@ -1488,6 +1549,11 @@ function renderMyBets() {
         ${AVATARS.map(a => `<div class="avatar-option ${a === currentAvatar ? 'selected' : ''}" onclick="selectAvatar('${a}')">${a}</div>`).join('')}
       </div>
       <div style="margin-top:0.5rem;font-size:0.7rem;color:var(--silver);">Atual: <span id="currentAvatarDisplay" style="font-size:1.2rem;">${currentAvatar || '⚽'}</span></div>
+      <div class="avatar-picker-title" style="margin-top:1rem;">🎨 Sua Cor</div>
+      <div class="avatar-picker-grid">
+        ${COLORS.map(c => `<div class="color-option ${c.hex === currentColor ? 'selected' : ''}" style="background:${c.hex}" onclick="selectAccentColor('${c.hex}')" title="${c.name}"></div>`).join('')}
+        <div class="color-option ${!currentColor ? 'selected' : ''}" style="background:var(--gray-mid);border-color:var(--gray-light);color:var(--silver);font-size:0.6rem;" onclick="selectAccentColor('')" title="Padrão (verde)">✕</div>
+      </div>
     `;
     document.getElementById('myBetsSummary').after(avatarWrap);
   }

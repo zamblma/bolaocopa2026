@@ -276,6 +276,11 @@
   }
 
   /* ===== LOGIN PAGE ===== */
+  #loginPage {
+    width: 100%; min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+  }
+
   .login-wrap {
     min-height: calc(100vh - 62px);
     display: flex;
@@ -1615,6 +1620,15 @@
     border-color: var(--green); background: rgba(0,200,81,0.15);
     box-shadow: 0 0 8px rgba(0,200,81,0.3);
   }
+
+  .color-option {
+    width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
+    border: 3px solid transparent; transition: all 0.15s;
+  }
+
+  .color-option:hover { transform: scale(1.15); }
+
+  .color-option.selected { border-color: var(--white); box-shadow: 0 0 10px rgba(255,255,255,0.4); }
 
   @keyframes skeletonPulse {
     0% { opacity: 0.5; }
