@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bolão Copa 2026 - Ben10 Edition</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="logo-bolao-v2.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="logo-bolao-v2.svg">
+  <title>Bolão Copa 2026 - Ben10 Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Gasoek+One&family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -84,6 +86,7 @@
     <button class="nav-btn" data-page="ranking" onclick="showPage('ranking',this)">🏆 Ranking</button>
     <button class="nav-btn" data-page="minhasApostas" onclick="showPage('minhasApostas',this)">📊 Meu Histórico</button>
     <button class="nav-btn" data-page="bracket" onclick="showPage('bracket',this)">🌳 Chaveamento</button>
+    <button class="nav-btn" data-page="regras" onclick="showPage('regras',this)">📋 Regras</button>
   </nav>
 
   <main>
@@ -122,6 +125,10 @@
         </div>
         <button class="btn-secondary" onclick="renderRanking()">↻ Atualizar</button>
       </div>
+      <div class="evolution-toggle">
+        <button class="btn-evolution" onclick="toggleEvolution()">📈 Ver Evolução por Fase</button>
+      </div>
+      <div id="evolutionContainer" style="display:none;"></div>
       <div class="ranking-list" id="rankingList"></div>
     </div>
 
@@ -138,6 +145,59 @@
       <div class="section-title">🌳 CHAVEAMENTO</div>
       <div class="section-sub">Evolução da fase eliminatória</div>
       <div id="bracketContainer"></div>
+    </div>
+
+    <!-- REGRAS PAGE -->
+    <div class="page" id="page-regras">
+      <div class="section-title">📋 REGRAS</div>
+      <div class="section-sub">Entenda como funciona a pontuação do bolão</div>
+      <div class="rules-content">
+        <div class="rule-card">
+          <div class="rule-title">🎯 Pontuação dos Palpites</div>
+          <div class="rule-table">
+            <div class="rule-row rule-header">
+              <span>Acerto</span><span>Pontos</span><span>Exemplo</span>
+            </div>
+            <div class="rule-row">
+              <span>Placar exato</span><span class="rule-pts">5 pts</span><span>2×1 e 2×1</span>
+            </div>
+            <div class="rule-row">
+              <span>Vencedor + diferença de gols</span><span class="rule-pts">3 pts</span><span>3×1 e 2×0</span>
+            </div>
+            <div class="rule-row">
+              <span>Só o vencedor / empate</span><span class="rule-pts">1 pt</span><span>2×0 e 1×0</span>
+            </div>
+            <div class="rule-row">
+              <span>Errou tudo</span><span class="rule-pts rule-0">0 pt</span><span>0×0 e 2×1</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="rule-card">
+          <div class="rule-title">👑 Bônus do Campeão</div>
+          <div class="rule-text">Antes do primeiro jogo, escolha quem será o campeão. Se acertar, ganha <strong>+20 pts</strong> extras no ranking geral.</div>
+        </div>
+
+        <div class="rule-card">
+          <div class="rule-title">🔒 Palpites Bloqueados</div>
+          <div class="rule-text">Quando o jogo começa (data/hora em Brasília), o palpite daquele jogo é bloqueado automaticamente. Não dá mais pra alterar.</div>
+        </div>
+
+        <div class="rule-card">
+          <div class="rule-title">🏆 Desempate no Ranking</div>
+          <div class="rule-text">Se dois participantes terminarem com a mesma pontuação, o desempate é: maior número de placares exatos → maior número de Result+Diff → menor número de palpites dados (quem palpita menos desempata).</div>
+        </div>
+
+        <div class="rule-card">
+          <div class="rule-title">🔄 Fases do Torneio</div>
+          <div class="rule-text">A Copa tem 7 fases: <strong>Grupos</strong> (72 jogos), <strong>32 avos</strong> (16), <strong>Oitavas</strong> (8), <strong>Quartas</strong> (4), <strong>Semis</strong> (2), <strong>3º Lugar</strong> (1) e <strong>Final</strong> (1). Você pode filtrar o ranking por fase para ver o desempenho em cada etapa.</div>
+        </div>
+
+        <div class="rule-card">
+          <div class="rule-title">👁 Palpites Públicos</div>
+          <div class="rule-text">Depois que o jogo começa, você pode clicar no botão 👁 na página de resultados para ver os palpites de todos os participantes naquele jogo.</div>
+        </div>
+      </div>
     </div>
   </main>
 </div>

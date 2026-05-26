@@ -1224,3 +1224,218 @@
   .top-team-name { flex: 1; font-weight: 600; }
   .top-team-pts { font-family: 'Gasoek One', sans-serif; color: var(--green); font-size: 0.85rem; }
 
+  /* ===== CHAMPION PICK ===== */
+  .champion-card {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    background: linear-gradient(135deg, rgba(255,215,0,0.08), rgba(255,107,0,0.04));
+    border: 1.5px solid var(--yellow);
+    border-radius: 12px;
+    padding: 0.7rem 1rem;
+    margin-bottom: 1rem;
+    grid-column: 1 / -1;
+  }
+
+  .champion-icon { font-size: 2rem; }
+
+  .champion-body { flex: 1; }
+
+  .champion-title { font-family: 'Gasoek One', sans-serif; font-size: 0.85rem; color: var(--yellow); letter-spacing: 1px; margin-bottom: 0.4rem; }
+
+  .champion-pick-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+
+  .champion-select {
+    flex: 1; min-width: 180px;
+    background: var(--gray-mid); color: var(--white); border: 1px solid var(--gray-light);
+    border-radius: 8px; padding: 0.4rem 0.6rem;
+    font-family: 'Nunito', sans-serif; font-size: 0.8rem; font-weight: 600;
+  }
+
+  .btn-champion {
+    background: var(--yellow); color: var(--black); border: none;
+    border-radius: 8px; padding: 0.4rem 1rem;
+    font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 0.75rem; cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .btn-champion:hover { background: var(--orange); }
+
+  .champion-pick-hint { font-size: 0.6rem; color: var(--silver); margin-top: 0.2rem; }
+
+  .champion-flag-preview { width: 1.5rem; display: flex; align-items: center; justify-content: center; }
+
+  .champion-current-pick { font-size: 0.75rem; color: var(--yellow); font-weight: 700; margin-top: 0.3rem; display: flex; align-items: center; gap: 0.3rem; }
+
+  .champion-winner { font-size: 0.9rem; font-weight: 700; color: var(--yellow); display: flex; align-items: center; gap: 0.4rem; }
+
+  /* ===== RANKING PHASE TABS ===== */
+  .ranking-phase-tabs {
+    display: flex; gap: 0.3rem; flex-wrap: wrap;
+    margin-bottom: 0.8rem;
+  }
+
+  .rphase-tab {
+    background: var(--gray-mid); color: var(--silver); border: 1px solid var(--gray-light);
+    border-radius: 8px; padding: 0.3rem 0.6rem;
+    font-family: 'Nunito', sans-serif; font-size: 0.65rem; font-weight: 700; cursor: pointer;
+    transition: 0.15s;
+  }
+
+  .rphase-tab.active { background: var(--green); color: var(--black); border-color: var(--green); }
+  .rphase-tab:hover { background: var(--gray-light); }
+
+  .rank-champion-pick {
+    font-size: 0.65rem; color: var(--silver); margin-top: 0.15rem; font-weight: 600;
+  }
+
+  .rank-champion-correct { color: var(--yellow); }
+
+  /* ===== BETS OVERLAY ===== */
+  .bets-overlay {
+    position: fixed; inset: 0; z-index: 999;
+    background: rgba(0,0,0,0.7);
+    display: flex; align-items: center; justify-content: center;
+    padding: 1rem;
+  }
+
+  .bets-modal {
+    background: var(--gray-dark); border: 1.5px solid var(--gray-light);
+    border-radius: 14px; width: 100%; max-width: 400px; max-height: 80vh;
+    display: flex; flex-direction: column;
+  }
+
+  .bets-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.8rem 1rem; border-bottom: 1px solid var(--gray-mid);
+    font-weight: 700; font-size: 0.85rem;
+  }
+
+  .bets-close {
+    background: none; border: none; color: var(--silver); font-size: 1.2rem; cursor: pointer;
+    padding: 0 0.3rem;
+  }
+
+  .bets-close:hover { color: var(--white); }
+
+  .bets-result-badge {
+    text-align: center; padding: 0.4rem; background: rgba(0,200,81,0.1);
+    font-size: 0.75rem; font-weight: 700; color: var(--green); border-bottom: 1px solid var(--gray-mid);
+  }
+
+  .bets-list { overflow-y: auto; padding: 0.5rem; display: flex; flex-direction: column; gap: 0.3rem; }
+
+  .bets-item {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.4rem 0.6rem; border-radius: 8px;
+    background: rgba(255,255,255,0.03); font-size: 0.78rem;
+  }
+
+  .bets-you { background: rgba(0,200,81,0.08); border: 1px solid rgba(0,200,81,0.2); }
+
+  .bets-name { flex: 1; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .bets-score { font-family: 'Gasoek One', sans-serif; font-size: 0.9rem; color: var(--white); }
+
+  .bets-pts {
+    font-weight: 700; font-size: 0.7rem; padding: 0.15rem 0.4rem;
+    border-radius: 6px; min-width: 1.6rem; text-align: center;
+  }
+
+  .bpts-5 { background: rgba(0,200,81,0.2); color: var(--green); }
+  .bpts-3 { background: rgba(255,215,0,0.15); color: var(--yellow); }
+  .bpts-1 { background: rgba(255,107,0,0.12); color: var(--orange); }
+  .bpts-0 { background: rgba(255,34,34,0.1); color: var(--red); }
+  .bpts-pending { background: rgba(255,255,255,0.05); color: var(--silver); }
+
+  .bets-exact { border-left: 3px solid var(--green); }
+  .bets-good { border-left: 3px solid var(--yellow); }
+
+  /* ===== RESULT VIEW FOR NON-ADMIN ===== */
+  .result-view { padding: 0.5rem 0; }
+
+  .result-final-score {
+    display: flex; align-items: center; justify-content: center; gap: 1rem; width: 100%;
+    font-weight: 700; font-size: 0.85rem;
+  }
+
+  .result-final-value { font-family: 'Gasoek One', sans-serif; font-size: 1.4rem; color: var(--green); }
+  .result-final-home { display: flex; align-items: center; gap: 0.3rem; }
+  .result-final-away { display: flex; align-items: center; gap: 0.3rem; }
+
+  .btn-view-bets {
+    background: rgba(255,255,255,0.06); border: 1px solid var(--gray-light);
+    border-radius: 6px; padding: 0.15rem 0.4rem; cursor: pointer;
+    font-size: 0.7rem; margin-left: auto; color: var(--silver);
+  }
+
+  .btn-view-bets:hover { background: var(--gray-light); color: var(--white); }
+
+  .champ-admin-card { margin-top: 1rem; }
+
+  /* ===== EVOLUTION ===== */
+  .evolution-toggle { margin-bottom: 0.8rem; }
+
+  .btn-evolution {
+    background: var(--gray-mid); color: var(--silver); border: 1px solid var(--gray-light);
+    border-radius: 8px; padding: 0.35rem 0.8rem; cursor: pointer;
+    font-family: 'Nunito', sans-serif; font-size: 0.7rem; font-weight: 700;
+    transition: 0.15s;
+  }
+
+  .btn-evolution:hover { background: var(--gray-light); color: var(--white); }
+
+  .evolution-wrap {
+    background: var(--gray-dark); border: 1.5px solid var(--gray-light);
+    border-radius: 12px; padding: 0.8rem; margin-bottom: 1rem; overflow-x: auto;
+  }
+
+  .evolution-title { font-family: 'Gasoek One', sans-serif; font-size: 0.8rem; color: var(--green); margin-bottom: 0.6rem; }
+
+  .evolution-table { width: 100%; border-collapse: collapse; font-size: 0.68rem; }
+
+  .evolution-table th, .evolution-table td {
+    padding: 0.25rem 0.4rem; text-align: center; white-space: nowrap;
+    border-bottom: 1px solid var(--gray-mid);
+  }
+
+  .evolution-table th {
+    font-weight: 700; color: var(--silver); text-transform: uppercase; font-size: 0.6rem;
+    background: var(--gray-mid); position: sticky; top: 0;
+  }
+
+  .evo-name-col { text-align: left !important; font-weight: 700; min-width: 100px; }
+  .evo-phase-col { min-width: 60px; }
+  .evo-you { color: var(--green); }
+  .evo-pos { font-size: 0.68rem; }
+  .evo-pts { color: var(--silver); font-size: 0.55rem; }
+  .evo-up { color: var(--green); font-weight: 700; }
+  .evo-down { color: var(--red); font-weight: 700; }
+  .evo-same { color: var(--silver); }
+
+  .evo-legend { font-size: 0.6rem; color: var(--silver); margin-top: 0.5rem; text-align: center; }
+
+  /* ===== REGRAS PAGE ===== */
+  .rules-content { display: flex; flex-direction: column; gap: 0.8rem; }
+
+  .rule-card {
+    background: var(--gray-dark); border: 1.5px solid var(--gray-light);
+    border-radius: 12px; padding: 0.8rem 1rem;
+  }
+
+  .rule-title { font-family: 'Gasoek One', sans-serif; font-size: 0.85rem; color: var(--green); margin-bottom: 0.5rem; }
+
+  .rule-text { font-size: 0.82rem; color: var(--white); line-height: 1.5; }
+
+  .rule-text strong { color: var(--yellow); }
+
+  .rule-table { display: flex; flex-direction: column; gap: 0.2rem; }
+
+  .rule-row { display: grid; grid-template-columns: 1fr 0.8fr 1fr; gap: 0.5rem; padding: 0.3rem 0; font-size: 0.78rem; border-bottom: 1px solid var(--gray-mid); align-items: center; }
+
+  .rule-header { font-weight: 700; color: var(--silver); font-size: 0.65rem; text-transform: uppercase; }
+
+  .rule-pts { font-family: 'Gasoek One', sans-serif; color: var(--green); font-size: 0.9rem; }
+
+  .rule-0 { color: var(--red); }
+

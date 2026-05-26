@@ -186,6 +186,7 @@ function generateMatches() {
 
 const ALL_MATCHES = generateMatches();
 const PHASES = ['Grupos','32avos','Oitavas','Quartas','Semis','Terceiro','Final'];
+const CHAMPION_BONUS = 20;
 
 function refLabel(ref) {
   if (!ref) return 'A definir';
@@ -689,6 +690,7 @@ function showPage(name, btn) {
   if (name === 'grupos') renderGroups();
   if (name === 'palpites') renderMatches('Grupos');
   if (name === 'resultados') renderResults('Grupos');
+  if (name === 'regras') { /* static page, nothing to render */ }
 }
 
 // ============================================================
@@ -708,9 +710,38 @@ function getNextMatches(limit) {
 
 function renderGroups() {
   const results = getData('bolao_results', {});
+  const users = getData('bolao_users', {});
+  const myProfile = users[currentUser] || {};
   const grid = document.getElementById('groupsGrid');
 
   const nextMatches = getNextMatches(5);
+
+  const allTeams = Object.values(GROUPS).flatMap(g => g.teams);
+
+  const currentPick = myProfile.champion || '';
+  const champWinner = results._champion;
+
+  const championHtml = `
+    <div class="champion-card">
+      <div class="champion-icon">👑</div>
+      <div class="champion-body">
+        <div class="champion-title">PREVISÃO DO CAMPEÃO</div>
+        ${champWinner ? `
+          <div class="champion-winner">Campeão: ${flagMarkup(champWinner, 'flag flag-inline')} ${champWinner.name} 🏆</div>
+        ` : `
+          <div class="champion-pick-row">
+            <div class="champion-flag-preview" id="championFlagPreview">${currentPick ? flagMarkup(getTeamByName(currentPick), 'flag flag-inline') : ''}</div>
+            <select class="champion-select" id="championSelect" onchange="updateChampionFlagPreview()">
+              <option value="">— Escolha o campeão —</option>
+              ${allTeams.map(t => `<option value="${t.name}" ${currentPick === t.name ? 'selected' : ''}>${t.name}</option>`).join('')}
+            </select>
+            <button class="btn-champion" onclick="saveChampion()">${currentPick ? '🔄 Trocar' : '✅ Definir'}</button>
+          </div>
+          ${currentPick ? `<div class="champion-current-pick">Seu palpite: ${flagMarkup(getTeamByName(currentPick), 'flag flag-inline')} ${currentPick}</div>` : ''}
+          <div class="champion-pick-hint">Você só pode trocar antes do primeiro jogo da Copa</div>
+        `}
+      </div>
+    </div>`;
 
   const nextHtml = nextMatches.length ? `
     <div class="next-matches-bar">
@@ -728,7 +759,7 @@ function renderGroups() {
       </div>
     </div>` : '';
 
-  grid.innerHTML = nextHtml + Object.entries(GROUPS).map(([g, data]) => {
+  grid.innerHTML = championHtml + nextHtml + Object.entries(GROUPS).map(([g, data]) => {
     const standings = isGroupComplete(g, results) ? getGroupStandings(g, results) : null;
     return `
     <div class="group-card">
@@ -798,6 +829,34 @@ function phaseLabel(p) {
   return map[p] || p;
 }
 
+function getTeamByName(name) {
+  return Object.values(GROUPS).flatMap(g => g.teams).find(t => t.name === name) || { name, flag: '🏳️' };
+}
+
+function saveChampion() {
+  const select = document.getElementById('championSelect');
+  const teamName = select.value;
+  if (!teamName) { showToast('Selecione um time!', true); return; }
+  const users = getData('bolao_users', {});
+  if (!users[currentUser]) users[currentUser] = {};
+  users[currentUser].champion = teamName;
+  setData('bolao_users', users);
+  showToast(`Campeão definido: ${teamName} 👑`);
+  renderGroups();
+}
+
+function updateChampionFlagPreview() {
+  const select = document.getElementById('championSelect');
+  const preview = document.getElementById('championFlagPreview');
+  const name = select.value;
+  if (name) {
+    const team = getTeamByName(name);
+                preview.innerHTML = flagMarkup(team, 'flag flag-inline');
+  } else {
+    preview.innerHTML = '';
+  }
+}
+
 function switchPhase(phase, btn, type) {
   currentPhase = phase;
   document.querySelectorAll(type === 'match' ? '#phaseTabs .phase-tab' : '#resultPhaseTabs .phase-tab')
@@ -845,12 +904,13 @@ function renderMatches(phase) {
                 value="${hasP ? p.away : ''}" placeholder="0" ${isLocked ? 'disabled' : ''}>
             </div>
           </div>
-          <div class="match-team right">
-            <div class="match-team-name">${m.away.name}</div>
+          <div class="match-team">
             ${flagMarkup(m.away)}
+            <div class="match-team-name">${m.away.name}</div>
           </div>
         </div>
-        <div class="match-save-row">
+        <div class="match-footer">
+          <span class="match-phase-badge">${phaseLabel(m.phase)}${m.group ? ` · Grupo ${m.group}` : ''}${m.ref ? ` · ${refLabel(m.ref)}` : ''}</span>
           <button class="btn-save-palpite" onclick="savePalpite(${m.id})" ${isLocked ? 'disabled style="opacity:0.3"' : ''}>💾 Salvar</button>
         </div>
       </div>
@@ -858,45 +918,6 @@ function renderMatches(phase) {
   }).join('');
 }
 
-function formatDateBR(iso) {
-  if (!iso) return '';
-  const d = new Date(iso + '-03:00');
-  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-}
-
-function savePalpite(matchId) {
-  const match = getMatchById(matchId);
-  if (match.date && new Date() > new Date(match.date + '-03:00')) {
-    showToast('⛔ Jogo já começou! Palpite bloqueado.', true);
-    return;
-  }
-  const h = document.getElementById(`ph-${matchId}`).value;
-  const a = document.getElementById(`pa-${matchId}`).value;
-  if (h === '' || a === '') { showToast('Preencha os dois placares!', true); return; }
-
-  const palpites = getData('bolao_palpites', {});
-  if (!palpites[currentUser]) palpites[currentUser] = {};
-  palpites[currentUser][matchId] = { home: parseInt(h), away: parseInt(a) };
-  setData('bolao_palpites', palpites);
-
-  const card = document.getElementById(`mc-${matchId}`);
-  if (card) {
-    card.classList.add('has-palpite');
-    const header = card.querySelector('.match-header');
-    let badge = header.querySelector('.palpite-saved');
-    if (!badge) {
-      badge = document.createElement('span');
-      badge.className = 'palpite-saved';
-      header.appendChild(badge);
-    }
-    badge.textContent = `✓ Palpite salvo: ${h} × ${a}`;
-  }
-  showToast('Palpite salvo!');
-}
-
-// ============================================================
-//  RESULTS
-// ============================================================
 function renderResultPhaseTabs() {
   const tabs = document.getElementById('resultPhaseTabs');
   tabs.innerHTML = PHASES.map((p, i) => `
@@ -905,25 +926,31 @@ function renderResultPhaseTabs() {
   `).join('');
 }
 
-function renderResults(phase) {
-  if (!currentUserIsAdmin()) {
-    document.getElementById('resultList').innerHTML = '<div class="empty-state"><div class="empty-icon">🔒</div><div class="empty-text">Apenas o admin pode mexer nos resultados.</div></div>';
-    return;
-  }
+function formatDateBR(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + '-03:00');
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
 
+function renderResults(phase) {
   const results = getData('bolao_results', {});
   const matches = getMatchesForPhase(phase);
   const list = document.getElementById('resultList');
+  const isAdmin = currentUserIsAdmin();
 
   list.innerHTML = matches.map(m => {
     const r = results[m.id];
     const hasR = r !== undefined;
+    const matchDate = m.date ? new Date(m.date + '-03:00') : null;
+    const started = matchDate && new Date() > matchDate;
     return `
       <div class="result-card">
         <div class="match-header" style="margin-bottom:0.5rem;">
           <span style="font-weight:700;font-size:0.85rem;">${flagMarkup(m.home, 'flag flag-inline')} ${m.home.name} × ${m.away.name} ${flagMarkup(m.away, 'flag flag-inline')}</span>
           ${hasR ? `<span class="result-saved-badge">✓ ${r.home}×${r.away}</span>` : ''}
+          ${started ? `<button class="btn-view-bets" onclick="showMatchBets(${m.id})" title="Ver palpites dos participantes">👁</button>` : ''}
         </div>
+        ${isAdmin ? `
         <div class="result-row">
           <div class="result-team-label">${m.home.name}</div>
           <div class="result-score-wrap">
@@ -935,12 +962,103 @@ function renderResults(phase) {
           </div>
           <div class="result-team-label right">${m.away.name}</div>
           <button class="btn-save-result" onclick="saveResult(${m.id})">💾 Salvar Resultado</button>
-        </div>
+        </div>` : `
+        <div class="result-row result-view">
+          ${hasR ? `
+            <div class="result-final-score">
+              <span class="result-final-home">${flagMarkup(m.home, 'flag flag-inline')} ${m.home.name}</span>
+              <span class="result-final-value">${r.home} × ${r.away}</span>
+              <span class="result-final-away">${m.away.name} ${flagMarkup(m.away, 'flag flag-inline')}</span>
+            </div>
+          ` : `<span style="color:var(--silver);font-size:0.8rem;">⏳ Aguardando resultado oficial</span>`}
+        </div>`}
       </div>
     `;
   }).join('');
+
+  if (isAdmin) {
+    const allTeams = Object.values(GROUPS).flatMap(g => g.teams);
+    const currentChamp = results._champion ? results._champion.name || results._champion : '';
+    list.innerHTML += `
+      <div class="result-card champ-admin-card">
+        <div class="match-header" style="color:var(--yellow);font-weight:700;">👑 CAMPEÃO DA COPA</div>
+        <div class="result-row">
+          <select class="champion-select" id="champAdminSelect">
+            <option value="">— Selecione o campeão —</option>
+            ${allTeams.map(t => `<option value="${t.name}" ${currentChamp === t.name ? 'selected' : ''}>${t.flag} ${t.name}</option>`).join('')}
+          </select>
+          <button class="btn-save-result" onclick="setChampionWinner()">🏆 Definir Campeão</button>
+          ${results._champion ? `<button class="btn-save-result" style="background:var(--red);" onclick="clearChampionWinner()">✕ Limpar</button>` : ''}
+        </div>
+      </div>`;
+  }
 }
 
+function showMatchBets(matchId) {
+  const match = getMatchById(matchId);
+  if (!match) return;
+  const results = getData('bolao_results', {});
+  const r = results[matchId];
+  const users = getData('bolao_users', {});
+  const allPalpites = getData('bolao_palpites', {});
+  const list = [];
+
+  Object.entries(allPalpites).forEach(([uid, bets]) => {
+    const p = bets[matchId];
+    if (!p) return;
+    const profile = users[uid] || {};
+    const name = profile.name || uid.slice(0, 8);
+    const pts = r ? calcPoints(p, r) : null;
+    list.push({ name, home: p.home, away: p.away, pts, isYou: uid === currentUser });
+  });
+
+  list.sort((a, b) => (b.pts||0) - (a.pts||0) || a.name.localeCompare(b.name));
+
+  const overlay = document.createElement('div');
+  overlay.className = 'bets-overlay';
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
+  const modal = document.createElement('div');
+  modal.className = 'bets-modal';
+  modal.innerHTML = `
+    <div class="bets-modal-header">
+      <span>👁 Palpites: ${match.home.name} × ${match.away.name}</span>
+      <button class="bets-close" onclick="this.closest('.bets-overlay').remove()">✕</button>
+    </div>
+    ${r ? `<div class="bets-result-badge">Resultado real: ${r.home} × ${r.away}</div>` : ''}
+    <div class="bets-list">
+      ${list.length ? list.map(b => `
+        <div class="bets-item ${b.isYou ? 'bets-you' : ''} ${b.pts === 5 ? 'bets-exact' : b.pts === 3 ? 'bets-good' : ''}">
+          <span class="bets-name">${b.isYou ? '⭐ ' : ''}${b.name}</span>
+          <span class="bets-score">${b.home} × ${b.away}</span>
+          ${b.pts !== null ? `<span class="bets-pts ${'bpts-'+b.pts}">${b.pts > 0 ? '+'+b.pts : '0'}</span>` : '<span class="bets-pts bpts-pending">⏳</span>'}
+        </div>`).join('') : '<div class="empty-state"><div class="empty-text">Ninguém palpou nesse jogo ainda.</div></div>'}
+    </div>
+  `;
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+}
+function setChampionWinner() {
+  const select = document.getElementById('champAdminSelect');
+  const name = select.value;
+  if (!name) { showToast('Selecione o campeão!', true); return; }
+  const team = Object.values(GROUPS).flatMap(g => g.teams).find(t => t.name === name);
+  if (!team) return;
+  const results = getData('bolao_results', {});
+  results._champion = team;
+  setData('bolao_results', results);
+  showToast(`🏆 Campeão definido: ${name}! Bônus de ${CHAMPION_BONUS}pts para quem acertou!`);
+  renderResults(currentPhase);
+}
+
+function clearChampionWinner() {
+  if (!confirm('Limpar o campeão?')) return;
+  const results = getData('bolao_results', {});
+  delete results._champion;
+  setData('bolao_results', results);
+  showToast('Campeão removido.');
+  renderResults(currentPhase);
+}
 function saveResult(matchId) {
   if (!currentUserIsAdmin()) {
     showToast('Apenas o admin pode salvar resultados.', true);
@@ -992,6 +1110,7 @@ function calcPoints(palpite, result) {
 function getUserScore(userName) {
   const palpites = getData('bolao_palpites', {})[userName] || {};
   const results = getData('bolao_results', {});
+  const users = getData('bolao_users', {});
   let total = 0, exact = 0, result3 = 0, winner1 = 0;
   let streak = 0, maxStreak = 0;
   let topTeam = '', topTeamPts = 0;
@@ -1020,7 +1139,11 @@ function getUserScore(userName) {
     if (pts > topTeamPts) { topTeamPts = pts; topTeam = team; }
   });
 
-  return { total, exact, result3, winner1, maxStreak, topTeam };
+  const profile = users[userName];
+  const champWinner = results._champion;
+  const champBonus = champWinner && profile?.champion === (champWinner.name || champWinner) ? CHAMPION_BONUS : 0;
+
+  return { total: total + champBonus, exact, result3, winner1, maxStreak, topTeam, champPts: champBonus };
 }
 
 function getUserAchievements(userName) {
@@ -1038,15 +1161,35 @@ function getUserAchievements(userName) {
 // ============================================================
 //  RANKING
 // ============================================================
+let rankingPhase = '';
+
+function getUserScoreByPhase(userName, phase) {
+  const palpites = getData('bolao_palpites', {})[userName] || {};
+  const results = getData('bolao_results', {});
+  let total = 0, exact = 0, result3 = 0, winner1 = 0;
+  ALL_MATCHES.filter(m => m.phase === phase).forEach(m => {
+    const pts = calcPoints(palpites[m.id], results[m.id]);
+    if (pts === null) return;
+    total += pts;
+    if (pts === 5) exact++;
+    else if (pts === 3) result3++;
+    else if (pts === 1) winner1++;
+  });
+  return { total, exact, result3, winner1 };
+}
+
 function renderRanking() {
   const users = getData('bolao_users', {});
   const userList = Object.entries(users);
+  const results = getData('bolao_results', {});
+  const champWinner = results._champion;
 
   const scored = userList.map(([uid, profile]) => ({
     uid,
     name: profile.name || profile.email || 'Participante',
     isAdmin: profile.isAdmin === true,
-    ...getUserScore(uid)
+    champion: profile.champion || '',
+    ...(rankingPhase ? getUserScoreByPhase(uid, rankingPhase) : getUserScore(uid))
   }));
   scored.sort((a, b) => b.total - a.total);
 
@@ -1057,8 +1200,14 @@ function renderRanking() {
     return;
   }
 
-  list.innerHTML = scored.map((u, i) => {
-    const badges = getUserAchievements(u.uid);
+  list.innerHTML = `
+    <div class="ranking-phase-tabs">
+      <button class="rphase-tab ${!rankingPhase ? 'active' : ''}" onclick="setRankingPhase('')">Geral</button>
+      ${PHASES.map(p => `<button class="rphase-tab ${rankingPhase === p ? 'active' : ''}" onclick="setRankingPhase('${p}')">${phaseLabel(p)}</button>`).join('')}
+    </div>
+  ` + scored.map((u, i) => {
+    const badges = rankingPhase ? [] : getUserAchievements(u.uid);
+    const champBonus = !rankingPhase && u.champPts ? `+${u.champPts} champ` : '';
     return `
     <div class="ranking-card ${i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':''}">
       <div class="rank-pos">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
@@ -1074,14 +1223,96 @@ function renderRanking() {
           <div class="rank-stat"><span class="stat-winner">⬆</span><span class="stat-winner">${u.winner1}</span><span style="color:var(--silver);">Vencedor</span></div>
         </div>
         ${badges.length ? `<div class="rank-badges">${badges.map(b => `<span class="rank-badge" title="${b.desc}">${b.icon} ${b.label}</span>`).join('')}</div>` : ''}
+        ${!rankingPhase && u.champion ? `<div class="rank-champion-pick ${champWinner && u.champion === (champWinner.name||champWinner) ? 'rank-champion-correct' : ''}">${u.champion === (champWinner?.name||champWinner) ? '👑 ' : ''}${u.champion}${champWinner && u.champion === (champWinner.name||champWinner) ? ' 🏆' : ''}</div>` : ''}
       </div>
       <div style="text-align:right;">
         <div class="rank-pts">${u.total}</div>
-        <div class="rank-pts-label">pontos</div>
-        ${u.topTeam ? `<div class="rank-top-team" title="Time que mais pontuou">${u.topTeam}</div>` : ''}
+        <div class="rank-pts-label">pontos${champBonus ? ` ${champBonus}` : ''}</div>
+        ${!rankingPhase && u.topTeam ? `<div class="rank-top-team" title="Time que mais pontuou">${u.topTeam}</div>` : ''}
       </div>
     </div>`;
   }).join('');
+}
+
+function setRankingPhase(phase) {
+  rankingPhase = phase;
+  renderRanking();
+}
+
+function toggleEvolution() {
+  const container = document.getElementById('evolutionContainer');
+  const btn = document.querySelector('.btn-evolution');
+  if (container.style.display === 'none') {
+    renderEvolution();
+    container.style.display = 'block';
+    btn.textContent = '📉 Fechar Evolução';
+  } else {
+    container.style.display = 'none';
+    btn.textContent = '📈 Ver Evolução por Fase';
+  }
+}
+
+function renderEvolution() {
+  const users = getData('bolao_users', {});
+  const userList = Object.entries(users);
+  const container = document.getElementById('evolutionContainer');
+  const phases = PHASES.filter(p => ALL_MATCHES.some(m => m.phase === p));
+
+  const phaseScores = {};
+  phases.forEach(phase => { phaseScores[phase] = []; });
+
+  userList.forEach(([uid, profile]) => {
+    const name = profile.name || uid.slice(0, 8);
+    phases.forEach(phase => {
+      const score = getUserScoreByPhase(uid, phase);
+      phaseScores[phase].push({ uid, name, total: score.total });
+    });
+  });
+
+  const rankingsPerPhase = {};
+  phases.forEach(phase => {
+    const sorted = [...phaseScores[phase]].sort((a, b) => b.total - a.total);
+    rankingsPerPhase[phase] = {};
+    sorted.forEach((u, i) => { rankingsPerPhase[phase][u.uid] = i + 1; });
+  });
+
+  container.innerHTML = `
+    <div class="evolution-wrap">
+      <div class="evolution-title">📈 Posição por Fase</div>
+      <div class="evolution-table-wrap">
+        <table class="evolution-table">
+          <thead>
+            <tr>
+              <th class="evo-name-col">Participante</th>
+              ${phases.map(p => `<th class="evo-phase-col">${phaseLabel(p)}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${userList.map(([uid, profile]) => {
+              const name = profile.name || uid.slice(0, 8);
+              let prev = null;
+              return `<tr>
+                <td class="evo-name-col ${uid === currentUser ? 'evo-you' : ''}">${name}</td>
+                ${phases.map(phase => {
+                  const pos = rankingsPerPhase[phase][uid];
+                  const pts = phaseScores[phase].find(u => u.uid === uid)?.total || 0;
+                  let arrow = '', cls = '';
+                  if (prev !== null && pos !== undefined) {
+                    if (pos < prev) { arrow = '🟢'; cls = 'evo-up'; }
+                    else if (pos > prev) { arrow = '🔴'; cls = 'evo-down'; }
+                    else { arrow = '⚪'; cls = 'evo-same'; }
+                  }
+                  prev = pos;
+                  const posDisplay = pos !== undefined ? `${pos}º` : '—';
+                  return `<td class="evo-pos ${cls}">${arrow} ${posDisplay} <span class="evo-pts">(${pts})</span></td>`;
+                }).join('')}
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div class="evo-legend">🟢 subiu &nbsp;🔴 caiu &nbsp;⚪ manteve</div>
+    </div>`;
 }
 
 // ============================================================
@@ -1211,6 +1442,8 @@ function renderMyBets() {
     `;
   }).join('');
 }
+
+
 
 // ============================================================
 //  BRACKET
