@@ -280,6 +280,7 @@
     width: 100%; min-height: 100vh;
     display: flex; align-items: center; justify-content: center;
   }
+  .js #loginPage { display: none; }
 
   .login-wrap {
     min-height: calc(100vh - 62px);
