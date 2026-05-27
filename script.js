@@ -342,24 +342,27 @@ function getMatchesForPhase(phase) {
 // ============================================================
 //  STORAGE HELPERS
 // ============================================================
-const STORAGE_KEYS = ['bolao_users', 'bolao_palpites', 'bolao_results'];
+const STORAGE_KEYS = ['bolao_users', 'bolao_palpites', 'bolao_results', 'bolao_bets'];
 
 let db = null;
-let unsubscribeUsers = null, unsubscribePalpites = null, unsubscribeResults = null;
+let unsubscribeUsers = null, unsubscribePalpites = null, unsubscribeResults = null, unsubscribeBets = null;
 let auth = null;
 let usersRef = null;
 let palpitesRef = null;
 let resultsRef = null;
 let adminRef = null;
+let betsRef = null;
 let dataReadyPromise = null;
 let isFirebaseReady = false;
 let isApplyingRemoteData = false;
 let _authHandled = false;
+let currentGroup = '';
 
 let appData = {
   bolao_users: {},
   bolao_palpites: {},
-  bolao_results: {}
+  bolao_results: {},
+  bolao_bets: {}
 };
 
 function cloneData(value) {
@@ -377,7 +380,23 @@ function loadLocalData() {
 }
 
 function saveLocalData() {
-  STORAGE_KEYS.forEach(key => localStorage.setItem(key, JSON.stringify(appData[key] || {})));
+  STORAGE_KEYS.forEach(key => {
+    const newData = appData[key] || {};
+    if (key === 'bolao_users') {
+      try {
+        const oldRaw = localStorage.getItem('bolao_users');
+        if (oldRaw) {
+          const oldData = JSON.parse(oldRaw);
+          for (const uid of Object.keys(newData)) {
+            if (newData[uid].bets_balance === undefined && oldData[uid] && oldData[uid].bets_balance !== undefined) {
+              newData[uid].bets_balance = oldData[uid].bets_balance;
+            }
+          }
+        }
+      } catch (e) {}
+    }
+    localStorage.setItem(key, JSON.stringify(newData));
+  });
 }
 
 function getData(key, def) {
@@ -426,23 +445,26 @@ async function initFirebaseData() {
   }
 
   try {
-    const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(window.firebaseConfig);
-    auth = firebase.auth(app);
-    db = firebase.firestore(app);
+    const fbApp = firebase.apps.length ? firebase.app() : firebase.initializeApp(window.firebaseConfig);
+    auth = firebase.auth(fbApp);
+    db = firebase.firestore(fbApp);
+    db.settings({ experimentalForceLongPolling: true });
     usersRef = db.collection('bolao_users');
     palpitesRef = db.collection('bolao_palpites');
     resultsRef = db.collection('bolao_config').doc('results');
     adminRef = db.collection('bolao_config').doc('admin');
+    betsRef = db.collection('bolao_config').doc('bets');
 
     if (!auth.currentUser) {
       isFirebaseReady = true;
       return;
     }
 
-    const [usersSnap, palpitesSnap, resultsSnap] = await Promise.all([
+    const [usersSnap, palpitesSnap, resultsSnap, betsSnap] = await Promise.all([
       usersRef.get(),
       palpitesRef.get(),
-      resultsRef.get()
+      resultsRef.get(),
+      betsRef.get()
     ]);
 
     isApplyingRemoteData = true;
@@ -455,7 +477,8 @@ async function initFirebaseData() {
           isAdmin: data.isAdmin === true,
           avatar: data.avatar || '',
           accentColor: data.accentColor || '',
-          champion: data.champion || ''
+          champion: data.champion || '',
+          bets_balance: data.bets_balance !== undefined ? data.bets_balance : undefined
         };
     });
 
@@ -466,6 +489,10 @@ async function initFirebaseData() {
 
     if (resultsSnap.exists) {
       appData.bolao_results = resultsSnap.data().matches || {};
+    }
+
+    if (betsSnap.exists) {
+      appData.bolao_bets = betsSnap.data().matches || {};
     }
     saveLocalData();
     isApplyingRemoteData = false;
@@ -481,7 +508,8 @@ async function initFirebaseData() {
           isAdmin: data.isAdmin === true,
           avatar: data.avatar || '',
           accentColor: data.accentColor || '',
-          champion: data.champion || ''
+          champion: data.champion || '',
+          bets_balance: data.bets_balance !== undefined ? data.bets_balance : undefined
         };
       });
       saveLocalData();
@@ -521,6 +549,19 @@ async function initFirebaseData() {
       }
     });
 
+    unsubscribeBets = betsRef.onSnapshot(snapshot => {
+      if (!snapshot.exists) return;
+      isApplyingRemoteData = true;
+      appData.bolao_bets = snapshot.data().matches || {};
+      saveLocalData();
+      isApplyingRemoteData = false;
+      refreshCurrentView();
+    }, error => {
+      if (error.code !== 'permission-denied' && error.code !== 'aborted' && error.code !== 'unavailable') {
+        console.error('Erro ao sincronizar bets:', error);
+      }
+    });
+
     isFirebaseReady = true;
   } catch (error) {
     console.error('Erro ao iniciar Firebase:', error);
@@ -552,6 +593,13 @@ function saveRemoteData(key) {
     if (myData) {
       writePromise = usersRef.doc(currentUser).set(myData, { merge: true });
     }
+  }
+
+  if (key === 'bolao_bets') {
+    writePromise = betsRef.set({
+      matches: appData.bolao_bets || {},
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
   }
 
   if (!writePromise) return;
@@ -760,6 +808,7 @@ function showPage(name, btn) {
   if (name === 'bracket') renderBracket();
   if (name === 'grupos') renderGroups();
   if (name === 'palpites') renderMatches('Grupos');
+  if (name === 'bets') renderBets();
   if (name === 'resultados') renderResults('Grupos');
   if (name === 'regras') { /* static page, nothing to render */ }
 }
@@ -800,20 +849,14 @@ function getNextMatches(limit) {
     .slice(0, limit);
 }
 
-function renderGroups() {
+function getChampionHtml() {
   const results = getData('bolao_results', {});
   const users = getData('bolao_users', {});
   const myProfile = users[currentUser] || {};
-  const grid = document.getElementById('groupsGrid');
-
-  const nextMatches = getNextMatches(5);
-
   const allTeams = Object.values(GROUPS).flatMap(g => g.teams).sort((a, b) => a.name.localeCompare(b.name));
-
   const currentPick = myProfile.champion || '';
   const champWinner = results._champion;
-
-  const championHtml = `
+  return `
     <div class="champion-card">
       <div class="champion-icon">👑</div>
       <div class="champion-body">
@@ -834,6 +877,13 @@ function renderGroups() {
         `}
       </div>
     </div>`;
+}
+
+function renderGroups() {
+  const results = getData('bolao_results', {});
+  const grid = document.getElementById('groupsGrid');
+
+  const nextMatches = getNextMatches(5);
 
   const nextHtml = nextMatches.length ? `
     <div class="next-matches-bar">
@@ -851,27 +901,28 @@ function renderGroups() {
       </div>
     </div>` : '';
 
-  grid.innerHTML = championHtml + nextHtml + Object.entries(GROUPS).map(([g, data], gi) => {
-    const standings = isGroupComplete(g, results) ? getGroupStandings(g, results) : null;
+  grid.innerHTML = nextHtml + Object.entries(GROUPS).map(([g, data], gi) => {
+    const standings = getGroupStandings(g, results);
+    const hasResults = standings.some(t => t.played > 0);
     return `
-    <div class="group-card card-stagger" style="--i:${gi}">
+    <div class="group-card card-stagger" style="--i:${gi}" onclick="goToGroupMatches('${g}')">
       <div class="group-header">
         <div class="group-letter">${g}</div>
         <div class="group-name">Grupo ${g}</div>
-        ${standings ? `<div class="group-status">${standings[0].played}/3</div>` : '<div class="group-status">—</div>'}
+        ${hasResults ? `<div class="group-status">${standings[0].played}/3</div>` : '<div class="group-status">—</div>'}
       </div>
       <div class="group-teams">
         ${data.teams.map((t, idx) => {
-          const pos = standings ? standings.findIndex(s => s.name === t.name) : -1;
+          const pos = hasResults ? standings.findIndex(s => s.name === t.name) : -1;
           const cls = pos === 0 || pos === 1 ? 'team-qualified' : pos === 2 ? 'team-third' : '';
           return `<div class="team-row ${cls}">
             ${flagMarkup(t)}
             <div class="team-name">${t.name}</div>
-            ${standings ? `<div class="team-stats">${standings[pos].pts}<span class="team-stats-label">pts</span></div>` : ''}
+            ${hasResults ? `<div class="team-stats">${standings[pos].pts}<span class="team-stats-label">pts</span></div>` : ''}
           </div>`;
         }).join('')}
       </div>
-      ${standings ? `
+      ${hasResults ? `
       <div class="group-table">
         <div class="gtable-row gtable-header">
           <span class="gtable-pos">#</span>
@@ -935,6 +986,7 @@ function saveChampion() {
   setData('bolao_users', users);
   showToast(`Campeão definido: ${teamName} 👑`);
   renderGroups();
+  renderMatches(currentPhase);
 }
 
 function selectAccentColor(hex) {
@@ -977,20 +1029,242 @@ function switchPhase(phase, btn, type) {
   document.querySelectorAll(type === 'match' ? '#phaseTabs .phase-tab' : '#resultPhaseTabs .phase-tab')
     .forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
+  if (phase !== 'Grupos') currentGroup = '';
   if (type === 'match') renderMatches(phase);
   else renderResults(phase);
   document.querySelector('.section-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+function goToGroupMatches(group) {
+  currentGroup = group;
+  showPage('palpites', document.querySelector('.nav-btn[data-page="palpites"]'));
+  const tab = document.querySelector('#phaseTabs .phase-tab');
+  if (tab) switchPhase('Grupos', tab, 'match');
+}
+
+function filterByGroup(group) {
+  currentGroup = group;
+  renderMatches('Grupos');
+  document.querySelectorAll('.group-pill').forEach(p => p.classList.toggle('active', p.dataset.group === group));
+}
+
+function renderGroupPills() {
+  const container = document.getElementById('groupPills');
+  if (!container) return;
+  const groups = Object.keys(GROUPS);
+  container.innerHTML = `<button class="group-pill ${!currentGroup ? 'active' : ''}" data-group="" onclick="filterByGroup('')">Todos</button>
+    ${groups.map(g => `<button class="group-pill ${currentGroup === g ? 'active' : ''}" data-group="${g}" onclick="filterByGroup('${g}')">Grupo ${g}</button>`).join('')}`;
+  container.style.display = currentPhase === 'Grupos' ? 'flex' : 'none';
+}
+
+function getBetsBalance() {
+  const raw = localStorage.getItem('bolao_users');
+  if (!raw) return 100;
+  try {
+    const users = JSON.parse(raw);
+    const myProfile = users[currentUser] || {};
+    return myProfile.bets_balance !== undefined ? myProfile.bets_balance : 100;
+  } catch (e) { return 100; }
+}
+
+function saveBetsBalance(amount) {
+  const users = getData('bolao_users', {});
+  if (!users[currentUser]) users[currentUser] = {};
+  users[currentUser].bets_balance = amount;
+  setData('bolao_users', users);
+}
+
+function calcBetsOdds(matchId) {
+  const bets = getData('bolao_bets', {});
+  const matchBets = bets[matchId] || {};
+  let home = 0, draw = 0, away = 0;
+  Object.values(matchBets).forEach(b => {
+    home += b.home || 0;
+    draw += b.draw || 0;
+    away += b.away || 0;
+  });
+  const total = home + draw + away;
+  if (total === 0) return { home: 2, draw: 2, away: 2 };
+  return {
+    home: +(total / (home || 1)).toFixed(2),
+    draw: +(total / (draw || 1)).toFixed(2),
+    away: +(total / (away || 1)).toFixed(2)
+  };
+}
+
+function placeBet(matchId, outcome) {
+  const input = document.getElementById(`bet-val-${matchId}`);
+  const amount = parseInt(input.value);
+  if (!amount || amount <= 0) { showToast('Digite um valor válido!', true); return; }
+
+  const match = getMatchById(matchId);
+  if (match && match.date && new Date() > new Date(match.date + '-03:00')) {
+    showToast('⛔ Jogo já começou!', true); return;
+  }
+
+  const betsRaw = localStorage.getItem('bolao_bets');
+  const bets = betsRaw ? JSON.parse(betsRaw) : {};
+  const existing = (bets[matchId] && bets[matchId][currentUser]) || { home: 0, draw: 0, away: 0 };
+  const totalExisting = (existing.home || 0) + (existing.draw || 0) + (existing.away || 0);
+
+  const usersRaw = localStorage.getItem('bolao_users');
+  const users = usersRaw ? JSON.parse(usersRaw) : {};
+  const myProfile = users[currentUser] || {};
+  const balance = myProfile.bets_balance !== undefined ? myProfile.bets_balance : 100;
+  const newBalance = balance - amount + totalExisting;
+  if (newBalance < 0) { showToast('Saldo insuficiente!', true); return; }
+
+  if (!bets[matchId]) bets[matchId] = {};
+  bets[matchId][currentUser] = { home: 0, draw: 0, away: 0, [outcome]: amount };
+  localStorage.setItem('bolao_bets', JSON.stringify(bets));
+  appData['bolao_bets'] = bets;
+
+  if (!users[currentUser]) users[currentUser] = {};
+  users[currentUser].bets_balance = newBalance;
+  localStorage.setItem('bolao_users', JSON.stringify(users));
+  appData['bolao_users'] = users;
+
+  saveRemoteData('bolao_bets');
+  saveRemoteData('bolao_users');
+
+  showToast(`Aposta de R$ ${amount} registrada!`);
+  renderBets();
+}
+
+function removeBet(matchId) {
+  const betsRaw = localStorage.getItem('bolao_bets');
+  const bets = betsRaw ? JSON.parse(betsRaw) : {};
+  const existing = (bets[matchId] && bets[matchId][currentUser]) || { home: 0, draw: 0, away: 0 };
+  const totalExisting = (existing.home || 0) + (existing.draw || 0) + (existing.away || 0);
+  if (!totalExisting) return;
+
+  const usersRaw = localStorage.getItem('bolao_users');
+  const users = usersRaw ? JSON.parse(usersRaw) : {};
+  const myProfile = users[currentUser] || {};
+  const balance = myProfile.bets_balance !== undefined ? myProfile.bets_balance : 100;
+
+  delete bets[matchId][currentUser];
+  if (!Object.keys(bets[matchId]).length) delete bets[matchId];
+  localStorage.setItem('bolao_bets', JSON.stringify(bets));
+  appData['bolao_bets'] = bets;
+
+  const newBalance = balance + totalExisting;
+  if (!users[currentUser]) users[currentUser] = {};
+  users[currentUser].bets_balance = newBalance;
+  localStorage.setItem('bolao_users', JSON.stringify(users));
+  appData['bolao_users'] = users;
+
+  saveRemoteData('bolao_bets');
+  saveRemoteData('bolao_users');
+
+  showToast(`Aposta cancelada. R$ ${totalExisting} devolvidos.`);
+  renderBets();
+}
+
+function renderBets() {
+  const results = getData('bolao_results', {});
+  const bets = getData('bolao_bets', {});
+  const balance = getBetsBalance();
+
+  document.getElementById('betsSaldo').innerHTML = `
+    <div class="bets-balance-card">
+      <span class="bets-balance-label">💰 Saldo</span>
+      <span class="bets-balance-value">R$ ${balance.toFixed(2)}</span>
+    </div>`;
+
+  const phaseTabs = document.getElementById('betsPhaseTabs');
+  phaseTabs.innerHTML = PHASES.map(p => `
+    <button class="phase-tab ${p === 'Grupos' ? 'active' : ''}"
+      onclick="switchBetsPhase('${p}',this)">${phaseLabel(p)}</button>`).join('');
+
+  renderBetsMatches('Grupos');
+}
+
+let betsPhase = 'Grupos';
+let betsGroup = '';
+
+function switchBetsPhase(phase, btn) {
+  betsPhase = phase;
+  betsGroup = '';
+  document.querySelectorAll('#betsPhaseTabs .phase-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBetsMatches(phase);
+}
+
+function renderBetsMatches(phase) {
+  const results = getData('bolao_results', {});
+  const thirdAssignments = getThirdTeamAssignments(results);
+  let matches = ALL_MATCHES.filter(m => m.phase === phase);
+  if (phase === 'Grupos' && betsGroup) matches = matches.filter(m => m.group === betsGroup);
+
+  const pillsContainer = document.getElementById('betsGroupPills');
+  if (pillsContainer) {
+    if (phase === 'Grupos') {
+      const groups = Object.keys(GROUPS);
+      pillsContainer.innerHTML = `<button class="group-pill ${!betsGroup ? 'active' : ''}" onclick="betsGroup='';renderBetsMatches('Grupos')">Todos</button>
+        ${groups.map(g => `<button class="group-pill ${betsGroup === g ? 'active' : ''}" onclick="betsGroup='${g}';renderBetsMatches('Grupos')">Grupo ${g}</button>`).join('')}`;
+      pillsContainer.style.display = 'flex';
+    } else {
+      pillsContainer.style.display = 'none';
+    }
+  }
+
+  const list = document.getElementById('betsList');
+  if (!matches.length) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">🎲</div><div class="empty-text">Nenhum jogo nesta fase.</div></div>';
+    return;
+  }
+
+  const allBets = getData('bolao_bets', {});
+
+  list.innerHTML = matches.map((m, mi) => {
+    const odds = calcBetsOdds(m.id);
+    const myBet = (allBets[m.id] && allBets[m.id][currentUser]) || {};
+    const hasBet = myBet.home || myBet.draw || myBet.away;
+    const locked = m.date && new Date() > new Date(m.date + '-03:00');
+    return `
+      <div class="bets-match-card">
+        <div class="bets-header">
+          <span>${m.label}</span>
+          ${m.date ? `<span class="match-time-badge">📅 ${formatDateBR(m.date)}</span>` : ''}
+        </div>
+        <div class="bets-teams">
+          <div class="bets-option ${myBet.home ? 'bets-selected' : ''}" onclick="${!locked ? `placeBet(${m.id},'home')` : ''}">
+            <div class="bets-team">${flagMarkup(m.home)} ${m.home.name}</div>
+            <div class="bets-odd">Odd: ${odds.home}x</div>
+            ${myBet.home ? `<div class="bets-my">R$ ${myBet.home}</div><div class="bets-win-hint">✅</div>` : ''}
+          </div>
+          <div class="bets-option ${myBet.draw ? 'bets-selected' : ''}" onclick="${!locked ? `placeBet(${m.id},'draw')` : ''}">
+            <div class="bets-team">Empate</div>
+            <div class="bets-odd">Odd: ${odds.draw}x</div>
+            ${myBet.draw ? `<div class="bets-my">R$ ${myBet.draw}</div><div class="bets-win-hint">✅</div>` : ''}
+          </div>
+          <div class="bets-option ${myBet.away ? 'bets-selected' : ''}" onclick="${!locked ? `placeBet(${m.id},'away')` : ''}">
+            <div class="bets-team">${flagMarkup(m.away)} ${m.away.name}</div>
+            <div class="bets-odd">Odd: ${odds.away}x</div>
+            ${myBet.away ? `<div class="bets-my">R$ ${myBet.away}</div><div class="bets-win-hint">✅</div>` : ''}
+          </div>
+        </div>
+        ${!locked ? `<div class="bets-input-row">
+          <input class="bets-input" id="bet-val-${m.id}" type="number" min="0" step="1" placeholder="Valor da aposta (R$)">
+          <span class="bets-input-hint">Clique no resultado para apostar</span>
+        </div>` : '<div class="bets-locked-row">🔒 Jogo já começou</div>'}
+        <div class="bets-pool">Pool: R$ ${(Object.values(allBets[m.id]||{}).reduce((s,b) => s+(b.home||0)+(b.draw||0)+(b.away||0), 0)).toFixed(2)}</div>
+        ${hasBet ? `<div class="bets-cancel-row"><button class="bets-cancel-btn" onclick="removeBet(${m.id})">✕ Cancelar aposta</button></div>` : ''}
+      </div>`;
+  }).join('');
+}
+
 function renderMatches(phase) {
   const palpites = getData('bolao_palpites', {});
   const userP = palpites[currentUser] || {};
-  const matches = getMatchesForPhase(phase);
+  let matches = getMatchesForPhase(phase);
+  if (phase === 'Grupos' && currentGroup) matches = matches.filter(m => m.group === currentGroup);
   const list = document.getElementById('matchList');
+  renderGroupPills();
 
-  if (!matches.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">⚽</div><div class="empty-text">Nenhum jogo nesta fase.</div></div>'; return; }
-
-  list.innerHTML = matches.map((m, mi) => {
+  list.innerHTML = getChampionHtml() + (matches.length
+    ? matches.map((m, mi) => {
     const p = userP[m.id];
     const hasP = p !== undefined;
     const isLocked = m.date && new Date() > new Date(m.date + '-03:00');
@@ -1027,18 +1301,23 @@ function renderMatches(phase) {
         </div>
         <div class="match-footer">
           <span class="match-phase-badge">${phaseLabel(m.phase)}${m.group ? ` · Grupo ${m.group}` : ''}${m.ref ? ` · ${refLabel(m.ref)}` : ''}</span>
-          <button class="btn-save-palpite" onclick="savePalpite(${m.id})" ${isLocked ? 'disabled style="opacity:0.3"' : ''}>💾 Salvar</button>
+          <div class="match-footer-btns">
+            ${hasP && !isLocked ? `<button class="btn-cancel-palpite" onclick="cancelPalpite(${m.id})">✕ Cancelar</button>` : ''}
+            <button class="btn-save-palpite" onclick="savePalpite(${m.id})" ${isLocked ? 'disabled style="opacity:0.3"' : ''}>💾 Salvar</button>
+          </div>
         </div>
       </div>
     `;
-  }).join('');
+  }).join('')
+  : '<div class="empty-state"><div class="empty-icon">⚽</div><div class="empty-text">Nenhum jogo nesta fase.</div></div>');
 }
 
 // ============================================================
 function savePalpite(matchId) {
-  const h = document.getElementById(`ph-${matchId}`).value;
-  const a = document.getElementById(`pa-${matchId}`).value;
-  if (h === '' || a === '') { showToast('Preencha o placar!', true); return; }
+  let h = document.getElementById(`ph-${matchId}`).value;
+  let a = document.getElementById(`pa-${matchId}`).value;
+  if (h === '') h = '0';
+  if (a === '') a = '0';
 
   const match = getMatchById(matchId);
   if (match && match.date && new Date() > new Date(match.date + '-03:00')) {
@@ -1053,6 +1332,15 @@ function savePalpite(matchId) {
 
   showToast(`✅ Palpite salvo: ${h} × ${a}`);
   confetti(30);
+  renderMatches(currentPhase);
+}
+
+function cancelPalpite(matchId) {
+  const palpites = getData('bolao_palpites', {});
+  if (!palpites[currentUser] || !palpites[currentUser][matchId]) return;
+  delete palpites[currentUser][matchId];
+  setData('bolao_palpites', palpites);
+  showToast('✕ Palpite cancelado');
   renderMatches(currentPhase);
 }
 
@@ -1115,6 +1403,7 @@ function renderResults(phase) {
           </div>
           <div class="result-team-label right">${m.away.name}</div>
           <button class="btn-save-result" onclick="saveResult(${m.id})">💾 Salvar Resultado</button>
+          ${hasR ? `<button class="btn-cancel-result" onclick="clearResult(${m.id})">✕</button>` : ''}
         </div>` : `
         <div class="result-row result-view">
           ${hasR ? `
@@ -1237,6 +1526,16 @@ function saveResult(matchId) {
   renderResults(currentPhase);
   showToast('Resultado salvo! Pontos recalculados.');
   confetti(60);
+}
+
+function clearResult(matchId) {
+  if (!currentUserIsAdmin()) { showToast('Apenas o admin pode remover resultados.', true); return; }
+  if (!confirm(`Remover o resultado do jogo ${matchId}?`)) return;
+  const results = getData('bolao_results', {});
+  delete results[matchId];
+  setData('bolao_results', results);
+  renderResults(currentPhase);
+  showToast('Resultado removido.');
 }
 
 // ============================================================
@@ -1761,6 +2060,11 @@ if (savedEmail) {
 }
 
 setInterval(updateCountdown, 60000);
+
+setInterval(() => {
+  const gruposPage = document.getElementById('page-grupos');
+  if (gruposPage && gruposPage.classList.contains('active')) renderGroups();
+}, 60000);
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && document.getElementById('loginPage').style.display !== 'none') {

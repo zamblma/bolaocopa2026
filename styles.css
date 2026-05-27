@@ -582,7 +582,10 @@
     border-radius: 12px;
     overflow: hidden;
     transition: border-color 0.2s, box-shadow 0.2s;
+    cursor: pointer;
   }
+
+  .group-card:hover { border-color: rgba(0,200,81,0.4); }
 
   .group-card,
   .match-card,
@@ -715,13 +718,39 @@
     color: var(--green);
   }
 
+  .group-pills {
+    display: none;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .group-pill {
+    background: var(--gray-mid);
+    border: 1.5px solid var(--gray-light);
+    color: var(--silver);
+    border-radius: 16px;
+    padding: 0.25rem 0.7rem;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 0.72rem;
+    transition: all 0.2s;
+  }
+
+  .group-pill.active, .group-pill:hover {
+    background: rgba(0,200,81,0.15);
+    border-color: var(--green);
+    color: var(--green);
+  }
+
   .match-list {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 0.8rem;
   }
 
-  @media (max-width: 700px) {
+  @media (max-width: 600px) {
     .match-list { grid-template-columns: 1fr; }
   }
 
@@ -893,6 +922,10 @@
 
   .btn-save-palpite:hover { background: var(--green); color: var(--black); transform: scale(1.03); }
 
+  .match-footer-btns { display: flex; gap: 0.4rem; align-items: center; }
+  .btn-cancel-palpite { background: rgba(255,34,34,0.1); color: var(--red); border: 1px solid rgba(255,34,34,0.2); padding: 0.35rem 0.7rem; border-radius: 8px; font-size: 0.75rem; cursor: pointer; font-weight: 600; transition: all 0.15s; }
+  .btn-cancel-palpite:hover { background: rgba(255,34,34,0.2); transform: scale(1.03); }
+
   /* ===== RESULTADOS (ADMIN) ===== */
   .admin-note {
     background: rgba(255,215,0,0.08);
@@ -963,6 +996,9 @@
   }
 
   .btn-save-result:hover { background: var(--orange); color: var(--white); }
+
+  .btn-cancel-result { background: rgba(255,34,34,0.1); color: var(--red); border: 1px solid rgba(255,34,34,0.2); padding: 0.45rem 0.6rem; border-radius: 7px; cursor: pointer; font-size: 0.85rem; transition: all 0.2s; }
+  .btn-cancel-result:hover { background: rgba(255,34,34,0.2); }
 
   .result-saved-badge {
     background: rgba(0,200,81,0.15);
@@ -1159,7 +1195,7 @@
   .pts-pending { background: rgba(255,255,255,0.05); color: var(--silver); border: 1px solid var(--gray-light); }
 
   /* ===== RESPONSIVE ===== */
-  @media (max-width: 700px) {
+  @media (max-width: 820px) {
     header {
       grid-template-columns: 1fr;
       justify-items: center;
@@ -1180,12 +1216,26 @@
     }
   }
 
+  @media (max-width: 600px) and (min-width: 501px) {
+    main { padding: 1rem 1.2rem; }
+    .groups-grid { grid-template-columns: repeat(2, 1fr); }
+    .match-card { padding: 0.8rem; }
+    .match-team-name { font-size: 0.82rem; }
+    .login-card { max-width: 440px; padding: 2.5rem 2.2rem; }
+    .alien-diamondhead { width: 130px; height: 160px; top: 2%; left: 2%; }
+    .alien-fourarms { width: 150px; height: 170px; bottom: 3%; right: 1%; }
+    .alien-xlr8 { width: 180px; height: 130px; top: 12%; right: 1%; }
+    .alien-heatblast { width: 130px; height: 150px; bottom: 8%; left: 1%; }
+    .bets-teams { flex-wrap: wrap; }
+  }
+
   @media (max-width: 500px) {
     main { padding: 0.8rem; }
     .groups-grid { grid-template-columns: 1fr; }
     .match-teams { flex-wrap: wrap; }
     .score-input-wrap { flex-wrap: wrap; }
     .ranking-card { flex-wrap: wrap; gap: 0.5rem; }
+    .bets-teams { flex-direction: column; }
   }
 
   /* ===== TOAST ===== */
@@ -1827,8 +1877,47 @@
   .skeleton-line.h3 { height: 3rem; }
   .skeleton-line.h4 { height: 4rem; }
 
+  /* ===== BETS VIRTUAIS ===== */
+  .bets-balance-card {
+    background: linear-gradient(135deg, var(--green), #00b34a);
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.2rem;
+    box-shadow: 0 0 20px rgba(0,200,81,0.3);
+  }
+  .bets-balance-label { font-weight: 700; font-size: 0.9rem; opacity: 0.9; }
+  .bets-balance-value { font-family: 'Gasoek One', sans-serif; font-size: 1.6rem; }
+
+  .bets-match-card {
+    background: var(--gray-dark);
+    border: 1.5px solid var(--gray-light);
+    border-radius: 12px;
+    padding: 0.8rem 1rem;
+    margin-bottom: 0.8rem;
+  }
+  .bets-header { font-size: 0.75rem; color: var(--silver); padding-bottom: 0.5rem; border-bottom: 1px solid var(--gray-light); display: flex; justify-content: space-between; align-items: center; }
+  .bets-teams { display: flex; gap: 0.4rem; margin-top: 0.6rem; }
+  .bets-option { flex: 1; text-align: center; padding: 0.5rem 0.3rem; border-radius: 8px; border: 1.5px solid var(--gray-light); cursor: pointer; transition: all 0.2s; }
+  .bets-option:hover { border-color: rgba(0,200,81,0.4); }
+  .bets-option.bets-selected { border-color: var(--green); background: rgba(0,200,81,0.1); }
+  .bets-team { font-weight: 700; font-size: 0.8rem; margin-bottom: 0.2rem; }
+  .bets-odd { font-size: 0.72rem; color: var(--yellow); font-weight: 700; margin-bottom: 0.2rem; }
+  .bets-my { font-size: 0.72rem; color: var(--green); font-weight: 700; }
+  .bets-win-hint { font-size: 0.7rem; }
+  .bets-input-row { display: flex; align-items: center; gap: 0.4rem; margin-top: 0.5rem; padding-top: 0.4rem; border-top: 1px solid var(--gray-light); }
+  .bets-input { width: 100px; height: 30px; border-radius: 6px; border: 1.5px solid var(--gray-light); background: var(--gray-mid); color: var(--white); text-align: center; font-size: 0.8rem; }
+  .bets-input-hint { font-size: 0.65rem; color: var(--gray-light); }
+  .bets-locked-row { text-align: center; font-size: 0.75rem; color: var(--red); font-weight: 700; margin-top: 0.5rem; padding-top: 0.4rem; border-top: 1px solid var(--gray-light); }
+  .bets-pool { text-align: center; font-size: 0.65rem; color: var(--silver); margin-top: 0.4rem; }
+  .bets-cancel-row { text-align: center; margin-top: 0.3rem; }
+  .bets-cancel-btn { background: rgba(255,34,34,0.1); color: var(--red); border: 1px solid rgba(255,34,34,0.2); padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.7rem; cursor: pointer; }
+  .bets-cancel-btn:hover { background: rgba(255,34,34,0.2); }
+
   /* ===== MOBILE SIDEBAR ===== */
-  @media (max-width: 700px) {
+  @media (max-width: 820px) {
     .btn-hamburger { display: inline-block; }
 
     .nav-inner {
