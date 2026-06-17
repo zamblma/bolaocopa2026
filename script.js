@@ -919,7 +919,7 @@ function renderGroups() {
         ${nextMatches.map(m => {
           const d = formatDateBR(m.date);
           const isLocked = m.date && new Date() > new Date(m.date + '-03:00');
-          return `<div class="next-match ${isLocked ? 'next-live' : ''}">
+          return `<div class="next-match ${isLocked ? 'next-live' : ''}" onclick="goToMatch(${m.id})" style="cursor:pointer;">
             <span class="next-date">${d}</span>
             <span class="next-teams">${flagMarkup(m.home,'flag flag-inline')} ${m.home.name} × ${m.away.name} ${flagMarkup(m.away,'flag flag-inline')}</span>
             <span class="next-phase">${phaseLabel(m.phase)}</span>
@@ -1120,6 +1120,20 @@ function switchPhase(phase, btn, type) {
   if (type === 'match') renderMatches(phase);
   else renderResults(phase);
   document.querySelector('.section-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function goToMatch(matchId) {
+  const match = ALL_MATCHES.find(m => m.id === matchId);
+  if (!match) return;
+  currentGroup = match.phase === 'Grupos' ? match.group : '';
+  showPage('palpites', document.querySelector('.nav-btn[data-page="palpites"]'));
+  const tabs = document.querySelectorAll('#phaseTabs .phase-tab');
+  const targetTab = Array.from(tabs).find(t => t.textContent.trim() === phaseLabel(match.phase));
+  if (targetTab) switchPhase(match.phase, targetTab, 'match');
+  setTimeout(() => {
+    const el = document.getElementById(`mc-${matchId}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 200);
 }
 
 function goToGroupMatches(group) {
