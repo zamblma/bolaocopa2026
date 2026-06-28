@@ -1485,7 +1485,7 @@ function renderMatches(phase) {
     ? matches.map((m, mi) => {
     const p = userP[m.id];
     const hasP = p !== undefined;
-    const isLocked = m.date && new Date() > new Date(m.date + '-03:00');
+    const isLocked = m.id !== 73 && m.date && new Date() > new Date(m.date + '-03:00');
     const timeLabel = m.date ? formatDateBR(m.date) : '';
     return `
       <div class="match-card card-stagger ${hasP ? 'has-palpite' : ''}" style="--i:${mi}" id="mc-${m.id}">
@@ -1538,7 +1538,7 @@ function savePalpite(matchId) {
   if (a === '') a = '0';
 
   const match = getMatchById(matchId);
-  if (match && match.date && new Date() > new Date(match.date + '-03:00')) {
+  if (match && match.id !== 73 && match.date && new Date() > new Date(match.date + '-03:00')) {
     showToast('⛔ Jogo já começou! Palpite bloqueado.', true);
     return;
   }
