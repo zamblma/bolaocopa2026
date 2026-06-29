@@ -257,32 +257,24 @@ function getThirdTeamAssignments(results) {
   const thirds = getThirdPlacedTeams(results);
   if (thirds.length < 8) return {};
 
+  // Chaveamento predeterminado da FIFA 2026
+  const fixedMap = {
+    '3ABCDF': 'D','3CDFGH': 'F','3CEFHI': 'E','3EHIJK': 'K',
+    '3BEFIJ': 'B','3AEHIJ': 'I','3EFGIJ': 'J','3DEIJL': 'L'
+  };
   const thirdByGroup = Object.fromEntries(thirds.map(team => [team.group, team]));
-  const slots = ALL_MATCHES
-    .filter(m => m.phase === '32avos' && (m.homeRef?.startsWith('3') || m.awayRef?.startsWith('3')))
-    .map(match => {
-      const ref = match.homeRef.startsWith('3') ? match.homeRef : match.awayRef;
-      return { matchId: match.id, ref, groups: ref.slice(1).split('').filter(group => thirdByGroup[group]) };
-    })
-    .sort((a, b) => a.groups.length - b.groups.length || a.matchId - b.matchId);
-
-  const assignments = {};
-  const used = new Set();
-  function place(index) {
-    if (index === slots.length) return true;
-    const slot = slots[index];
-    for (const group of slot.groups) {
-      if (used.has(group)) continue;
-      used.add(group);
-      assignments[slot.matchId] = group;
-      if (place(index + 1)) return true;
-      used.delete(group);
-      delete assignments[slot.matchId];
-    }
-    return false;
+  const out = {};
+  for (const [ref, group] of Object.entries(fixedMap)) {
+    if (thirdByGroup[group]) out[thirdByGroup[group].matchRef || ref] = group;
   }
-
-  place(0);
+  // Mapeia cada partida de 32avos que tem ref 3xyz
+  const assignments = {};
+  ALL_MATCHES.filter(m => m.phase === '32avos').forEach(m => {
+    const ref = (m.homeRef?.startsWith('3') ? m.homeRef : m.awayRef?.startsWith('3') ? m.awayRef : null);
+    if (ref && fixedMap[ref] && thirdByGroup[fixedMap[ref]]) {
+      assignments[m.id] = fixedMap[ref];
+    }
+  });
   return assignments;
 }
 
@@ -489,6 +481,11 @@ async function initFirebaseData() {
       } else if (!appData.bolao_results[key].settled) {
         appData.bolao_results[key].settled = true;
       }
+    }
+
+    // Carrega resultados reais dos grupos se ainda nao foram carregados
+    if (!hasRealResults(appData.bolao_results)) {
+      preencherResultadosReais(appData.bolao_results);
     }
 
     // Salvando local + Firebase para que o onSnapshot nao restaure dados velhos
@@ -754,6 +751,37 @@ function logout() {
   document.getElementById('app').style.display = 'none';
   document.getElementById('loginPage').style.display = 'flex';
   if (auth) auth.signOut().catch(() => {});
+}
+
+function hasRealResults(results) {
+  for (const key of Object.keys(results)) {
+    if (key === '_champion') continue;
+    const match = ALL_MATCHES.find(m => m.id === Number(key));
+    if (match && match.phase === 'Grupos' && results[key].home !== undefined) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function preencherResultadosReais(results) {
+  const dados = {
+    1:[2,0],2:[1,0],3:[3,0],4:[1,0],5:[1,1],6:[2,1],
+    7:[1,1],8:[6,0],9:[1,2],10:[3,1],11:[1,4],12:[1,1],
+    13:[1,1],14:[3,0],15:[3,0],16:[4,2],17:[1,0],18:[0,1],
+    19:[4,1],20:[2,0],21:[2,3],22:[0,0],23:[1,0],24:[2,0],
+    25:[7,1],26:[2,1],27:[1,2],28:[0,2],29:[0,0],30:[1,0],
+    31:[2,2],32:[5,1],33:[3,1],34:[1,1],35:[4,0],36:[5,1],
+    37:[1,1],38:[0,0],39:[5,1],40:[1,1],41:[3,1],42:[2,2],
+    43:[0,0],44:[4,0],45:[1,0],46:[0,0],47:[2,2],48:[1,1],
+    49:[3,1],50:[3,0],51:[4,1],52:[5,0],53:[2,3],54:[1,4],
+    55:[3,0],56:[2,0],57:[3,1],58:[3,3],59:[2,1],60:[3,1],
+    61:[1,1],62:[5,0],63:[0,0],64:[3,1],65:[0,1],66:[1,3],
+    67:[4,2],68:[0,0],69:[2,0],70:[2,1],71:[1,0],72:[1,0]
+  };
+  for (const [id, [h, a]] of Object.entries(dados)) {
+    results[id] = { home: h, away: a, winner: null, settled: true };
+  }
 }
 
 function enterApp() {
