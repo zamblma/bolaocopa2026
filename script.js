@@ -344,16 +344,16 @@ function getMatchesForPhase(phase) {
 // ============================================================
 //  STORAGE HELPERS
 // ============================================================
-const STORAGE_KEYS = ['bolao_users', 'bolao_palpites', 'bolao_results', 'bolao_bets'];
+const STORAGE_KEYS = ['bolao_users', 'bolao_palpites', 'bolao_results'];
 
 let db = null;
-let unsubscribeUsers = null, unsubscribePalpites = null, unsubscribeResults = null, unsubscribeBets = null;
+let unsubscribeUsers = null, unsubscribePalpites = null, unsubscribeResults = null;
 let auth = null;
 let usersRef = null;
 let palpitesRef = null;
 let resultsRef = null;
 let adminRef = null;
-let betsRef = null;
+
 let dataReadyPromise = null;
 let isFirebaseReady = false;
 let isApplyingRemoteData = false;
@@ -364,7 +364,7 @@ let appData = {
   bolao_users: {},
   bolao_palpites: {},
   bolao_results: {},
-  bolao_bets: {}
+
 };
 
 function cloneData(value) {
@@ -381,45 +381,11 @@ function loadLocalData() {
   });
 }
 
-function mergeBetsLocal(remoteBets) {
-  const merged = cloneData(remoteBets);
-  try {
-    const localRaw = localStorage.getItem('bolao_bets');
-    if (!localRaw || !currentUser) return merged;
-    const localBets = JSON.parse(localRaw);
-    for (const matchId of Object.keys(localBets)) {
-      if (localBets[matchId] && localBets[matchId][currentUser] !== undefined) {
-        if (!merged[matchId]) merged[matchId] = {};
-        merged[matchId][currentUser] = localBets[matchId][currentUser];
-      }
-    }
-    for (const matchId of Object.keys(merged)) {
-      if (merged[matchId] && merged[matchId][currentUser] !== undefined) {
-        if (!localBets[matchId] || localBets[matchId][currentUser] === undefined) {
-          delete merged[matchId][currentUser];
-          if (!Object.keys(merged[matchId]).length) delete merged[matchId];
-        }
-      }
-    }
-  } catch (e) {}
-  return merged;
-}
-
 function saveLocalData(fromSnapshot) {
   STORAGE_KEYS.forEach(key => {
     const newData = appData[key] || {};
     if (key === 'bolao_users') {
-      try {
-        const oldRaw = localStorage.getItem('bolao_users');
-        if (oldRaw) {
-          const oldData = JSON.parse(oldRaw);
-          for (const uid of Object.keys(newData)) {
-            if (fromSnapshot && oldData[uid] && oldData[uid].bets_balance !== undefined) {
-              newData[uid].bets_balance = oldData[uid].bets_balance;
-            }
-          }
-        }
-      } catch (e) {}
+
     }
     localStorage.setItem(key, JSON.stringify(newData));
   });
@@ -479,18 +445,15 @@ async function initFirebaseData() {
     palpitesRef = db.collection('bolao_palpites');
     resultsRef = db.collection('bolao_config').doc('results');
     adminRef = db.collection('bolao_config').doc('admin');
-    betsRef = db.collection('bolao_config').doc('bets');
-
     if (!auth.currentUser) {
       isFirebaseReady = true;
       return;
     }
 
-    const [usersSnap, palpitesSnap, resultsSnap, betsSnap] = await Promise.all([
+    const [usersSnap, palpitesSnap, resultsSnap] = await Promise.all([
       usersRef.get(),
       palpitesRef.get(),
-      resultsRef.get(),
-      betsRef.get()
+      resultsRef.get()
     ]);
 
     isApplyingRemoteData = true;
@@ -504,7 +467,6 @@ async function initFirebaseData() {
           avatar: data.avatar || '',
           accentColor: data.accentColor || '',
           champion: data.champion || '',
-          bets_balance: data.bets_balance !== undefined ? data.bets_balance : undefined
         };
     });
 
@@ -515,12 +477,6 @@ async function initFirebaseData() {
 
     if (resultsSnap.exists) {
       appData.bolao_results = resultsSnap.data().matches || {};
-    }
-
-    if (betsSnap.exists) {
-      const remoteBets = betsSnap.data().matches || {};
-      const merged = mergeBetsLocal(remoteBets);
-      appData.bolao_bets = merged;
     }
     saveLocalData();
     isApplyingRemoteData = false;
@@ -536,8 +492,7 @@ async function initFirebaseData() {
           isAdmin: data.isAdmin === true,
           avatar: data.avatar || '',
           accentColor: data.accentColor || '',
-          champion: data.champion || '',
-          bets_balance: data.bets_balance !== undefined ? data.bets_balance : undefined
+          champion: data.champion || ''
         };
       });
       saveLocalData(true);
@@ -577,20 +532,6 @@ async function initFirebaseData() {
       }
     });
 
-    unsubscribeBets = betsRef.onSnapshot(snapshot => {
-      if (!snapshot.exists) return;
-      isApplyingRemoteData = true;
-      const remoteBets = snapshot.data().matches || {};
-      appData.bolao_bets = mergeBetsLocal(remoteBets);
-      saveLocalData(true);
-      isApplyingRemoteData = false;
-      refreshCurrentView();
-    }, error => {
-      if (error.code !== 'permission-denied' && error.code !== 'aborted' && error.code !== 'unavailable') {
-        console.error('Erro ao sincronizar bets:', error);
-      }
-    });
-
     isFirebaseReady = true;
   } catch (error) {
     console.error('Erro ao iniciar Firebase:', error);
@@ -622,13 +563,6 @@ function saveRemoteData(key) {
     if (myData) {
       writePromise = usersRef.doc(currentUser).set(myData, { merge: true });
     }
-  }
-
-  if (key === 'bolao_bets') {
-    writePromise = betsRef.set({
-      matches: appData.bolao_bets || {},
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
   }
 
   if (!writePromise) return;
@@ -837,7 +771,6 @@ function showPage(name, btn) {
   if (name === 'bracket') renderBracket();
   if (name === 'grupos') renderGroups();
   if (name === 'palpites') renderMatches('Grupos');
-  if (name === 'bets') renderBets();
   if (name === 'resultados') renderResults('Grupos');
   if (name === 'regras') { /* static page, nothing to render */ }
 }
@@ -983,477 +916,8 @@ function renderGroups() {
     </div>`;
   }).join('');
 
-  // 👇 Append bet history section
-  renderBetsHistory();
 }
 
-function renderBetsHistory() {
-  const container = document.getElementById('betReviewList');
-  const users = getData('bolao_users', {});
-  const myProfile = users[currentUser] || {};
-  let history = myProfile.bet_history || [];
-
-  if (!history.length) {
-    const el = document.getElementById('betsHistoryWrap');
-    if (el) el.remove();
-    return;
-  }
-
-  // Sort newest first
-  history = [...history].reverse();
-
-  const totalProfit = history.reduce((s, h) => s + (h.profit || 0), 0);
-  const wins = history.filter(h => (h.profit || 0) > 0).length;
-  const losses = history.filter(h => (h.profit || 0) < 0).length;
-  const balance = getBetsBalance();
-
-  let existing = document.getElementById('betsHistoryWrap');
-  if (!existing) {
-    existing = document.createElement('div');
-    existing.id = 'betsHistoryWrap';
-    container.parentNode.insertBefore(existing, container.nextSibling);
-  }
-
-  existing.innerHTML = `
-    <div class="section-sub" style="margin-top:1.5rem;margin-bottom:0.3rem;">💰 Histórico de Bets</div>
-    <div class="bets-history-cards">
-      <div class="bh-card"><span class="bh-label">Saldo Atual</span><span class="bh-val">R$ ${balance.toFixed(2)}</span></div>
-      <div class="bh-card ${totalProfit >= 0 ? 'bh-profit' : 'bh-loss'}"><span class="bh-label">Lucro Total</span><span class="bh-val">${totalProfit >= 0 ? '+' : ''}R$ ${totalProfit.toFixed(2)}</span></div>
-      <div class="bh-card"><span class="bh-label">Vitórias</span><span class="bh-val bh-wins">${wins}</span></div>
-      <div class="bh-card"><span class="bh-label">Derrotas</span><span class="bh-val bh-losses">${losses}</span></div>
-    </div>
-    <div class="bets-history-list">
-      ${history.map(h => {
-        const outcomeLabel = { home: h.matchLabel?.split('×')[0]?.trim() || 'Casa', draw: 'Empate', away: h.matchLabel?.split('×')[1]?.trim() || 'Fora', lost: 'Perdeu' }[h.outcome] || h.outcome;
-        const isWin = (h.profit || 0) > 0;
-        const isLoss = (h.profit || 0) < 0;
-        return `<div class="bh-item ${isWin ? 'bh-win' : isLoss ? 'bh-loss-item' : ''}">
-          <div class="bh-top">
-            <span class="bh-match">${h.matchLabel}</span>
-            <span class="bh-result-badge">${h.result}</span>
-          </div>
-          <div class="bh-bottom">
-            <span class="bh-detail">${outcomeLabel}</span>
-            <span class="bh-detail">R$ ${h.amount}</span>
-            ${h.odd > 0 ? `<span class="bh-detail">${h.odd}x</span>` : ''}
-            <span class="bh-profit ${isWin ? 'bh-p-profit' : isLoss ? 'bh-p-loss' : ''}">${h.profit >= 0 ? '+' : ''}R$ ${(h.profit || 0).toFixed(2)}</span>
-          </div>
-        </div>`;
-      }).join('')}
-    </div>`;
-}
-
-
-//  PALPITES
-// ============================================================
-let currentPhase = 'Grupos';
-
-function renderPhaseTabs() {
-  const tabs = document.getElementById('phaseTabs');
-  tabs.innerHTML = PHASES.map(p => `
-    <button class="phase-tab ${p === currentPhase ? 'active' : ''}"
-      onclick="switchPhase('${p}',this,'match')">${phaseLabel(p)}</button>
-  `).join('');
-}
-
-function phaseLabel(p) {
-  const map = { Grupos:'Grupos', '32avos':'Fase de 32', Oitavas:'Oitavas', Quartas:'Quartas', Semis:'Semis', Terceiro:'3º Lugar', Final:'Final' };
-  return map[p] || p;
-}
-
-function getTeamByName(name) {
-  return Object.values(GROUPS).flatMap(g => g.teams).find(t => t.name === name) || { name, flag: '🏳️' };
-}
-
-function saveChampion() {
-  const select = document.getElementById('championSelect');
-  const teamName = select.value;
-  if (!teamName) { showToast('Selecione um time!', true); return; }
-  const users = getData('bolao_users', {});
-  if (!users[currentUser]) users[currentUser] = {};
-  users[currentUser].champion = teamName;
-  setData('bolao_users', users);
-  showToast(`Campeão definido: ${teamName} 👑`);
-  renderGroups();
-  renderMatches(currentPhase);
-}
-
-function selectAccentColor(hex) {
-  const users = getData('bolao_users', {});
-  if (!users[currentUser]) users[currentUser] = {};
-  if (hex) users[currentUser].accentColor = hex;
-  else delete users[currentUser].accentColor;
-  setData('bolao_users', users);
-  document.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
-  document.querySelectorAll('.color-option').forEach(el => { if (el.style.background === hex || (!hex && el.style.background === 'var(--gray-mid)')) el.classList.add('selected'); });
-  showToast(hex ? `🎨 Cor definida!` : '🎨 Cor padrão restaurada');
-}
-
-function selectAvatar(emoji) {
-  const users = getData('bolao_users', {});
-  if (!users[currentUser]) users[currentUser] = {};
-  users[currentUser].avatar = emoji;
-  setData('bolao_users', users);
-  document.querySelectorAll('.avatar-option').forEach(el => el.classList.remove('selected'));
-  document.querySelectorAll('.avatar-option').forEach(el => { if (el.textContent === emoji) el.classList.add('selected'); });
-  const display = document.getElementById('currentAvatarDisplay');
-  if (display) display.textContent = emoji;
-  showToast(`🎭 Avatar: ${emoji}`);
-}
-
-function updateChampionFlagPreview() {
-  const select = document.getElementById('championSelect');
-  const preview = document.getElementById('championFlagPreview');
-  const name = select.value;
-  if (name) {
-    const team = getTeamByName(name);
-                preview.innerHTML = flagMarkup(team, 'flag flag-inline');
-  } else {
-    preview.innerHTML = '';
-  }
-}
-
-function switchPhase(phase, btn, type) {
-  currentPhase = phase;
-  document.querySelectorAll(type === 'match' ? '#phaseTabs .phase-tab' : '#resultPhaseTabs .phase-tab')
-    .forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  if (phase !== 'Grupos') currentGroup = '';
-  if (type === 'match') renderMatches(phase);
-  else renderResults(phase);
-  document.querySelector('.section-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-function goToMatch(matchId) {
-  const match = ALL_MATCHES.find(m => m.id === matchId);
-  if (!match) return;
-  currentGroup = match.phase === 'Grupos' ? match.group : '';
-  showPage('palpites', document.querySelector('.nav-btn[data-page="palpites"]'));
-  const tabs = document.querySelectorAll('#phaseTabs .phase-tab');
-  const targetTab = Array.from(tabs).find(t => t.textContent.trim() === phaseLabel(match.phase));
-  if (targetTab) switchPhase(match.phase, targetTab, 'match');
-  setTimeout(() => {
-    const el = document.getElementById(`mc-${matchId}`);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, 200);
-}
-
-function goToGroupMatches(group) {
-  currentGroup = group;
-  showPage('palpites', document.querySelector('.nav-btn[data-page="palpites"]'));
-  const tab = document.querySelector('#phaseTabs .phase-tab');
-  if (tab) switchPhase('Grupos', tab, 'match');
-}
-
-function filterByGroup(group) {
-  currentGroup = group;
-  renderMatches('Grupos');
-  document.querySelectorAll('.group-pill').forEach(p => p.classList.toggle('active', p.dataset.group === group));
-}
-
-function renderGroupPills() {
-  const container = document.getElementById('groupPills');
-  if (!container) return;
-  const groups = Object.keys(GROUPS);
-  container.innerHTML = `<button class="group-pill ${!currentGroup ? 'active' : ''}" data-group="" onclick="filterByGroup('')">Todos</button>
-    ${groups.map(g => `<button class="group-pill ${currentGroup === g ? 'active' : ''}" data-group="${g}" onclick="filterByGroup('${g}')">Grupo ${g}</button>`).join('')}`;
-  container.style.display = currentPhase === 'Grupos' ? 'flex' : 'none';
-}
-
-function getBetsBalance() {
-  const raw = localStorage.getItem('bolao_users');
-  if (!raw) return 100;
-  try {
-    const users = JSON.parse(raw);
-    const myProfile = users[currentUser] || {};
-    return myProfile.bets_balance !== undefined ? myProfile.bets_balance : 100;
-  } catch (e) { return 100; }
-}
-
-function saveBetsBalance(amount) {
-  const users = getData('bolao_users', {});
-  if (!users[currentUser]) users[currentUser] = {};
-  users[currentUser].bets_balance = amount;
-  setData('bolao_users', users);
-}
-
-function calcBetsOdds(matchId) {
-  const bets = getData('bolao_bets', {});
-  const matchBets = bets[matchId] || {};
-  let home = 0, draw = 0, away = 0;
-  Object.values(matchBets).forEach(b => {
-    home += b.home || 0;
-    draw += b.draw || 0;
-    away += b.away || 0;
-  });
-  const total = home + draw + away;
-  if (total === 0) return { home: 2, draw: 2, away: 2 };
-  return {
-    home: +(total / (home || 1)).toFixed(2),
-    draw: +(total / (draw || 1)).toFixed(2),
-    away: +(total / (away || 1)).toFixed(2)
-  };
-}
-
-function getTeamFifaPoints(teamName) {
-  for (const g of Object.keys(GROUPS)) {
-    const team = GROUPS[g].teams.find(t => t.name === teamName);
-    if (team && team.fifaPoints) return team.fifaPoints;
-  }
-  return 1500;
-}
-
-function calcFifaOdds(homeName, awayName) {
-  const rA = getTeamFifaPoints(homeName);
-  const rB = getTeamFifaPoints(awayName);
-  const total = rA + rB;
-  const strengthA = rA / total;
-  const strengthB = rB / total;
-  const balance = 1 - Math.abs(strengthA - strengthB);
-  const drawProb = +(0.12 + balance * 0.20).toFixed(4);
-  const remain = 1 - drawProb;
-  const pA = strengthA / (strengthA + strengthB) * remain;
-  const pB = strengthB / (strengthA + strengthB) * remain;
-  return {
-    home: +(1 / pA).toFixed(2),
-    draw: +(1 / drawProb).toFixed(2),
-    away: +(1 / pB).toFixed(2)
-  };
-}
-
-function placeBet(matchId, outcome) {
-  const input = document.getElementById(`bet-val-${matchId}`);
-  const amount = parseInt(input.value);
-  if (!amount || amount <= 0) { showToast('Digite um valor válido!', true); return; }
-
-  const match = getMatchById(matchId);
-  if (match && match.date && new Date() > new Date(match.date + '-03:00')) {
-    showToast('⛔ Jogo já começou!', true); return;
-  }
-
-  const bets = getData('bolao_bets', {});
-  const existing = (bets[matchId] && bets[matchId][currentUser]) || { home: 0, draw: 0, away: 0 };
-  const totalExisting = (existing.home || 0) + (existing.draw || 0) + (existing.away || 0);
-
-  const users = getData('bolao_users', {});
-  const myProfile = users[currentUser] || {};
-  const balance = myProfile.bets_balance !== undefined ? myProfile.bets_balance : 100;
-  const newBalance = balance - amount + totalExisting;
-  if (newBalance < 0) { showToast('Saldo insuficiente!', true); return; }
-
-  if (!bets[matchId]) bets[matchId] = {};
-  bets[matchId][currentUser] = { home: 0, draw: 0, away: 0, [outcome]: amount };
-  localStorage.setItem('bolao_bets', JSON.stringify(bets));
-  appData['bolao_bets'] = bets;
-
-  if (!users[currentUser]) users[currentUser] = {};
-  users[currentUser].bets_balance = newBalance;
-  localStorage.setItem('bolao_users', JSON.stringify(users));
-  appData['bolao_users'] = users;
-
-  saveRemoteData('bolao_bets');
-  saveRemoteData('bolao_users');
-
-  showToast(`Aposta de R$ ${amount} registrada!`);
-  renderBets();
-}
-
-function setQuickBet(matchId, amount) {
-  const input = document.getElementById(`bet-val-${matchId}`);
-  if (input) {
-    input.value = amount;
-    input.focus();
-    input.classList.add('bets-input-pulse');
-    setTimeout(() => input.classList.remove('bets-input-pulse'), 300);
-  }
-}
-
-function removeBet(matchId) {
-  const bets = getData('bolao_bets', {});
-  const existing = (bets[matchId] && bets[matchId][currentUser]) || { home: 0, draw: 0, away: 0 };
-  const totalExisting = (existing.home || 0) + (existing.draw || 0) + (existing.away || 0);
-  if (!totalExisting) return;
-
-  const users = getData('bolao_users', {});
-  const myProfile = users[currentUser] || {};
-  const balance = myProfile.bets_balance !== undefined ? myProfile.bets_balance : 100;
-
-  delete bets[matchId][currentUser];
-  if (!Object.keys(bets[matchId]).length) delete bets[matchId];
-  localStorage.setItem('bolao_bets', JSON.stringify(bets));
-  appData['bolao_bets'] = bets;
-
-  const newBalance = balance + totalExisting;
-  if (!users[currentUser]) users[currentUser] = {};
-  users[currentUser].bets_balance = newBalance;
-  localStorage.setItem('bolao_users', JSON.stringify(users));
-  appData['bolao_users'] = users;
-
-  saveRemoteData('bolao_bets');
-  saveRemoteData('bolao_users');
-
-  showToast(`Aposta cancelada. R$ ${totalExisting} devolvidos.`);
-  renderBets();
-}
-
-let betsView = 'jogos';
-
-function renderBets() {
-  const results = getData('bolao_results', {});
-  const bets = getData('bolao_bets', {});
-  const balance = getBetsBalance();
-
-  document.getElementById('betsSaldo').innerHTML = `
-    <div class="bets-balance-card" style="display:flex;justify-content:space-between;align-items:center;width:100%;">
-      <div>
-        <span class="bets-balance-label">💰 Saldo</span>
-        <span class="bets-balance-value">R$ ${balance.toFixed(2)}</span>
-      </div>
-      <div class="bets-view-toggle">
-        <button class="bv-btn ${betsView === 'jogos' ? 'bv-active' : ''}" onclick="switchBetsView('jogos')">🎲 Jogos</button>
-        <button class="bv-btn ${betsView === 'ranking' ? 'bv-active' : ''}" onclick="switchBetsView('ranking')">🏆 Ranking</button>
-      </div>
-    </div>`;
-
-  if (betsView === 'ranking') { renderBetsRanking(); return; }
-
-  const phaseTabs = document.getElementById('betsPhaseTabs');
-  phaseTabs.innerHTML = PHASES.map(p => `
-    <button class="phase-tab ${p === 'Grupos' ? 'active' : ''}"
-      onclick="switchBetsPhase('${p}',this)">${phaseLabel(p)}</button>`).join('');
-
-  renderBetsMatches('Grupos');
-}
-
-function switchBetsView(view) {
-  betsView = view;
-  document.querySelectorAll('.bv-btn').forEach(b => b.classList.remove('bv-active'));
-  document.querySelector(`.bv-btn[onclick*="${view}"]`)?.classList.add('bv-active');
-  if (view === 'ranking') renderBetsRanking();
-  else renderBets();
-}
-
-function renderBetsRanking() {
-  const phaseTabs = document.getElementById('betsPhaseTabs');
-  phaseTabs.innerHTML = '';
-  document.getElementById('betsGroupPills').style.display = 'none';
-
-  const users = getData('bolao_users', {});
-
-  const list = Object.entries(users)
-    .map(([uid, p]) => ({
-      uid,
-      name: p.name || uid.slice(0, 8),
-      avatar: p.avatar || '',
-      balance: p.bets_balance !== undefined ? p.bets_balance : 100,
-      isYou: uid === currentUser
-    }))
-    .sort((a, b) => b.balance - a.balance || a.name.localeCompare(b.name));
-
-  const listEl = document.getElementById('betsList');
-  listEl.innerHTML = `
-    <div class="bets-ranking-title">🏆 Ranking de Bets</div>
-    <div class="bets-ranking-list">
-      ${list.map((u, i) => {
-        const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}º`;
-        const profit = u.balance - 100;
-        return `<div class="bets-rank-item ${u.isYou ? 'bets-rank-you' : ''}">
-          <span class="bets-rank-pos">${medal}</span>
-          <span class="avatar-circle avatar-circle-sm">${u.avatar || '⚽'}</span>
-          <span class="bets-rank-name">${u.isYou ? '⭐ ' : ''}${u.name}</span>
-          <div class="bets-rank-stats">
-            <span class="bets-rank-balance">R$ ${u.balance.toFixed(2)}</span>
-            <span class="bets-rank-profit ${profit >= 0 ? 'bets-rank-prof' : 'bets-rank-loss'}">${profit >= 0 ? '+' : ''}R$ ${profit.toFixed(2)}</span>
-          </div>
-        </div>`;
-      }).join('')}
-    </div>`;
-}
-
-let betsPhase = 'Grupos';
-let betsGroup = '';
-
-function switchBetsPhase(phase, btn) {
-  betsView = 'jogos';
-  betsPhase = phase;
-  betsGroup = '';
-  document.querySelectorAll('#betsPhaseTabs .phase-tab').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  renderBetsMatches(phase);
-}
-
-function renderBetsMatches(phase) {
-  const results = getData('bolao_results', {});
-  const thirdAssignments = getThirdTeamAssignments(results);
-  let matches = ALL_MATCHES.filter(m => m.phase === phase);
-  if (phase === 'Grupos' && betsGroup) matches = matches.filter(m => m.group === betsGroup);
-
-  const pillsContainer = document.getElementById('betsGroupPills');
-  if (pillsContainer) {
-    if (phase === 'Grupos') {
-      const groups = Object.keys(GROUPS);
-      pillsContainer.innerHTML = `<button class="group-pill ${!betsGroup ? 'active' : ''}" onclick="betsGroup='';renderBetsMatches('Grupos')">Todos</button>
-        ${groups.map(g => `<button class="group-pill ${betsGroup === g ? 'active' : ''}" onclick="betsGroup='${g}';renderBetsMatches('Grupos')">Grupo ${g}</button>`).join('')}`;
-      pillsContainer.style.display = 'flex';
-    } else {
-      pillsContainer.style.display = 'none';
-    }
-  }
-
-  const list = document.getElementById('betsList');
-  if (!matches.length) {
-    list.innerHTML = '<div class="empty-state"><div class="empty-icon">🎲</div><div class="empty-text">Nenhum jogo nesta fase.</div></div>';
-    return;
-  }
-
-  const allBets = getData('bolao_bets', {});
-
-  list.innerHTML = matches.map((m, mi) => {
-    const odds = calcBetsOdds(m.id);
-    const myBet = (allBets[m.id] && allBets[m.id][currentUser]) || {};
-    const locked = m.date && new Date() > new Date(m.date + '-03:00');
-    return `
-      <div class="bets-match-card">
-        <div class="bets-header">
-          <span>${m.label}</span>
-          ${m.date ? `<span class="match-time-badge">📅 ${formatDateBR(m.date)}</span>` : ''}
-        </div>
-        <div class="bets-teams">
-          <div class="bets-option ${myBet.home ? 'bets-selected' : ''}" onclick="${!locked ? `placeBet(${m.id},'home')` : ''}">
-            <div class="bets-team">${flagMarkup(m.home)} ${m.home.name}</div>
-            <div class="bets-odd">Odd: ${odds.home}x</div>
-            ${myBet.home ? `<div class="bets-my"><span>R$ ${myBet.home}</span><button class="bets-remove-inline" onclick="event.stopPropagation();removeBet(${m.id})">✕</button></div>` : ''}
-          </div>
-          <div class="bets-option ${myBet.draw ? 'bets-selected' : ''}" onclick="${!locked ? `placeBet(${m.id},'draw')` : ''}">
-            <div class="bets-team">Empate</div>
-            <div class="bets-odd">Odd: ${odds.draw}x</div>
-            ${myBet.draw ? `<div class="bets-my"><span>R$ ${myBet.draw}</span><button class="bets-remove-inline" onclick="event.stopPropagation();removeBet(${m.id})">✕</button></div>` : ''}
-          </div>
-          <div class="bets-option ${myBet.away ? 'bets-selected' : ''}" onclick="${!locked ? `placeBet(${m.id},'away')` : ''}">
-            <div class="bets-team">${flagMarkup(m.away)} ${m.away.name}</div>
-            <div class="bets-odd">Odd: ${odds.away}x</div>
-            ${myBet.away ? `<div class="bets-my"><span>R$ ${myBet.away}</span><button class="bets-remove-inline" onclick="event.stopPropagation();removeBet(${m.id})">✕</button></div>` : ''}
-          </div>
-        </div>
-        ${!locked ? `<div class="bets-input-area">
-          <div class="bets-input-row">
-            <span class="bets-currency">R$</span>
-            <input class="bets-input" id="bet-val-${m.id}" type="number" min="0" step="1" placeholder="0">
-          </div>
-          <div class="bets-quick-amounts">
-            <button class="bets-quick-btn" onclick="setQuickBet(${m.id},5)">R$5</button>
-            <button class="bets-quick-btn" onclick="setQuickBet(${m.id},10)">R$10</button>
-            <button class="bets-quick-btn" onclick="setQuickBet(${m.id},20)">R$20</button>
-            <button class="bets-quick-btn" onclick="setQuickBet(${m.id},50)">R$50</button>
-          </div>
-          <div class="bets-input-hint">Escolha um valor e clique no resultado</div>
-        </div>` : '<div class="bets-locked-row">🔒 Jogo já começou</div>'}
-        <div class="bets-pool">Pool: R$ ${(Object.values(allBets[m.id]||{}).reduce((s,b) => s+(b.home||0)+(b.draw||0)+(b.away||0), 0)).toFixed(2)}</div>
-      </div>`;
-  }).join('');
-}
-
-let matchSearch = '';
 
 function filterMatchesBySearch(matches, search) {
   if (!search) return matches;
@@ -1628,7 +1092,7 @@ function renderResults(phase) {
         <div class="match-header" style="margin-bottom:0.5rem;">
           <span style="font-weight:700;font-size:0.85rem;">${flagMarkup(m.home, 'flag flag-inline')} ${m.home.name} × ${m.away.name} ${flagMarkup(m.away, 'flag flag-inline')}</span>
           ${hasR ? `<span class="result-saved-badge">✓ ${r.home}×${r.away}</span>` : ''}
-          ${started ? `<button class="btn-view-bets" onclick="showMatchBets(${m.id})" title="Ver palpites dos participantes">👁</button>` : ''}
+          ${started ? `<button class="btn-view-bets" onclick="showMatchPalpites(${m.id})" title="Ver palpites dos participantes">👁</button>` : ''}
         </div>
         ${isAdmin ? `
         <div class="result-row">
@@ -1697,7 +1161,7 @@ function renderResults(phase) {
   }
 }
 
-function showMatchBets(matchId) {
+function showMatchPalpites(matchId) {
   const match = getMatchById(matchId);
   if (!match) return;
   const results = getData('bolao_results', {});
@@ -1706,8 +1170,8 @@ function showMatchBets(matchId) {
   const allPalpites = getData('bolao_palpites', {});
   const list = [];
 
-  Object.entries(allPalpites).forEach(([uid, bets]) => {
-    const p = bets[matchId];
+  Object.entries(allPalpites).forEach(([uid, userPalpites]) => {
+    const p = userPalpites[matchId];
     if (!p) return;
     const profile = users[uid] || {};
     const name = profile.name || uid.slice(0, 8);
@@ -1719,24 +1183,24 @@ function showMatchBets(matchId) {
   list.sort((a, b) => (b.pts||0) - (a.pts||0) || a.name.localeCompare(b.name));
 
   const overlay = document.createElement('div');
-  overlay.className = 'bets-overlay';
+  overlay.className = 'pmp-overlay';
   overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
 
   const modal = document.createElement('div');
-  modal.className = 'bets-modal';
+  modal.className = 'pmp-modal';
   modal.innerHTML = `
-    <div class="bets-modal-header">
+    <div class="pmp-modal-header">
       <span>👁 Palpites: ${match.home.name} × ${match.away.name}</span>
-      <button class="bets-close" onclick="this.closest('.bets-overlay').remove()">✕</button>
+      <button class="pmp-close" onclick="this.closest('.pmp-overlay').remove()">✕</button>
     </div>
-    ${r ? `<div class="bets-result-badge">Resultado real: ${r.home} × ${r.away}</div>` : ''}
-    <div class="bets-list">
+    ${r ? `<div class="pmp-result-badge">Resultado real: ${r.home} × ${r.away}</div>` : ''}
+    <div class="pmp-list">
       ${list.length ? list.map(b => `
-        <div class="bets-item ${b.isYou ? 'bets-you' : ''} ${b.pts === 5 ? 'bets-exact' : b.pts === 3 ? 'bets-good' : ''}">
+        <div class="pmp-item ${b.isYou ? 'pmp-you' : ''} ${b.pts === 5 ? 'pmp-exact' : b.pts === 3 ? 'pmp-good' : ''}">
           <span class="avatar-circle avatar-circle-sm">${b.avatar || '⚽'}</span>
-          <span class="bets-name">${b.isYou ? '⭐ ' : ''}${b.name}</span>
-          <span class="bets-score">${b.home} × ${b.away}</span>
-          ${b.pts !== null ? `<span class="bets-pts ${'bpts-'+b.pts}">${b.pts > 0 ? '+'+b.pts : '0'}</span>` : '<span class="bets-pts bpts-pending">⏳</span>'}
+          <span class="pmp-name">${b.isYou ? '⭐ ' : ''}${b.name}</span>
+          <span class="pmp-score">${b.home} × ${b.away}</span>
+          ${b.pts !== null ? `<span class="pmp-pts ${'ppts-'+b.pts}">${b.pts > 0 ? '+'+b.pts : '0'}</span>` : '<span class="pmp-pts ppts-pending">⏳</span>'}
         </div>`).join('') : '<div class="empty-state"><div class="empty-text">Ninguém palpou nesse jogo ainda.</div></div>'}
     </div>
   `;
@@ -1811,71 +1275,7 @@ function saveResult(matchId) {
 }
 
 function settleMatchBets(matchId, result) {
-  const bets = getData('bolao_bets', {});
-  const matchBets = bets[matchId];
-  if (!matchBets || !Object.keys(matchBets).length) return;
-
-  const match = getMatchById(matchId);
-  const matchLabel = match ? `${match.home.name} × ${match.away.name}` : `Jogo #${matchId}`;
-  const outcome = result.home > result.away ? 'home' : result.away > result.home ? 'away' : 'draw';
-  const odds = calcBetsOdds(matchId);
-  const winningOdd = odds[outcome];
-
-  const users = getData('bolao_users', {});
-  let paidTotal = 0;
-  let paidCount = 0;
-
-  Object.entries(matchBets).forEach(([uid, bet]) => {
-    const amount = bet[outcome] || 0;
-    if (amount <= 0) return;
-    const payout = +(amount * winningOdd).toFixed(2);
-    const profit = +(amount * (winningOdd - 1)).toFixed(2);
-    if (!users[uid]) users[uid] = {};
-    users[uid].bets_balance = (users[uid].bets_balance || 100) + payout;
-    if (!users[uid].bet_history) users[uid].bet_history = [];
-    users[uid].bet_history.push({
-      matchId,
-      matchLabel,
-      phase: match?.phase || '',
-      outcome,
-      amount,
-      odd: winningOdd,
-      payout,
-      profit,
-      result: `${result.home}×${result.away}`,
-      settledAt: Date.now()
-    });
-    paidTotal += payout;
-    paidCount++;
-  });
-
-  Object.entries(matchBets).forEach(([uid, bet]) => {
-    const lostAmount = (bet.home||0) + (bet.draw||0) + (bet.away||0) - (bet[outcome]||0);
-    if (lostAmount > 0) {
-      if (!users[uid]) users[uid] = {};
-      if (!users[uid].bet_history) users[uid].bet_history = [];
-      users[uid].bet_history.push({
-        matchId,
-        matchLabel,
-        phase: match?.phase || '',
-        outcome: 'lost',
-        amount: lostAmount,
-        odd: 0,
-        payout: 0,
-        profit: -lostAmount,
-        result: `${result.home}×${result.away}`,
-        settledAt: Date.now()
-      });
-    }
-  });
-
-  if (paidCount > 0) {
-    setData('bolao_users', users);
-    showToast(`💰 R$ ${paidTotal.toFixed(2)} pagos a ${paidCount} vencedor(es) (odd: ${winningOdd}x)`);
-  }
-
-  delete bets[matchId];
-  setData('bolao_bets', bets);
+  // Bets virtuais removidas — sem liquidação
 }
 
 function clearResult(matchId) {
@@ -1887,6 +1287,17 @@ function clearResult(matchId) {
   if (!wasSettled && !confirm(`Remover o resultado do jogo ${matchId}?`)) return;
   delete results[matchId];
   setData('bolao_results', results);
+  // Clear inputs directly to avoid race condition with Firebase snapshot
+  const rh = document.getElementById(`rh-${matchId}`);
+  const ra = document.getElementById(`ra-${matchId}`);
+  if (rh) rh.value = '';
+  if (ra) ra.value = '';
+  // Remove the saved-badge
+  const card = document.querySelector(`#resultList .result-card .match-header`);
+  if (card) {
+    const badge = card.querySelector('.result-saved-badge');
+    if (badge) badge.remove();
+  }
   renderResults(currentPhase);
   showToast(wasSettled ? 'Resultado removido. Pagamentos mantidos.' : 'Resultado removido.');
 }
