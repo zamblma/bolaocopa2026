@@ -212,7 +212,7 @@ function getGroupMatches(group) {
 }
 
 function isGroupComplete(group, results) {
-  return getGroupMatches(group).every(m => results[m.id]);
+  return getGroupMatches(group).every(m => results[m.id] && results[m.id].settled);
 }
 
 function getGroupStandings(group, results) {
@@ -293,7 +293,7 @@ function getMatchById(matchId) {
 function getMatchWinner(matchId, results) {
   const match = getResolvedMatch(getMatchById(matchId), results);
   const result = results[matchId];
-  if (!match || !result) return null;
+  if (!match || !result || !result.settled) return null;
   if (result.home !== result.away) return result.home > result.away ? match.home : match.away;
   return result.winner === 'home' ? match.home : result.winner === 'away' ? match.away : null;
 }
@@ -301,7 +301,7 @@ function getMatchWinner(matchId, results) {
 function getMatchLoser(matchId, results) {
   const match = getResolvedMatch(getMatchById(matchId), results);
   const result = results[matchId];
-  if (!match || !result) return null;
+  if (!match || !result || !result.settled) return null;
   if (result.home !== result.away) return result.home > result.away ? match.away : match.home;
   return result.winner === 'home' ? match.away : result.winner === 'away' ? match.home : null;
 }
@@ -740,6 +740,7 @@ function enterApp() {
   document.getElementById('loginPage').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   document.getElementById('headerUserName').textContent = currentUserName || currentUser;
+  cleanupResults();
   renderGroups();
   renderPhaseTabs();
   renderResultPhaseTabs();
@@ -749,6 +750,19 @@ function enterApp() {
 function showError(el, msg) {
   el.textContent = msg;
   el.style.display = 'block';
+}
+
+function cleanupResults() {
+  const results = getData('bolao_results', {});
+  let changed = false;
+  for (const key of Object.keys(results)) {
+    if (key === '_champion') continue;
+    if (!results[key].settled) {
+      delete results[key];
+      changed = true;
+    }
+  }
+  if (changed) setData('bolao_results', results);
 }
 
 // ============================================================
@@ -1197,7 +1211,7 @@ function renderResults(phase) {
 
   list.innerHTML = matches.map((m, mi) => {
     const r = results[m.id];
-    const hasR = r !== undefined;
+    const hasR = r !== undefined && r.settled === true;
     const matchDate = m.date ? new Date(m.date + '-03:00') : null;
     const started = matchDate && new Date() > matchDate;
     return `
@@ -1451,7 +1465,7 @@ function getUserScore(userName) {
 
   ALL_MATCHES.forEach(m => {
     const p = palpites[m.id];
-    const r = results[m.id];
+    const r = results[m.id] && results[m.id].settled ? results[m.id] : null;
     const pts = calcPoints(p, r);
     if (pts === null) return;
     total += pts;
@@ -1502,7 +1516,8 @@ function getUserScoreByPhase(userName, phase) {
   const results = getData('bolao_results', {});
   let total = 0, exact = 0, result3 = 0, winner1 = 0;
   ALL_MATCHES.filter(m => m.phase === phase).forEach(m => {
-    const pts = calcPoints(palpites[m.id], results[m.id]);
+    const r = results[m.id] && results[m.id].settled ? results[m.id] : null;
+    const pts = calcPoints(palpites[m.id], r);
     if (pts === null) return;
     total += pts;
     if (pts === 5) exact++;
