@@ -762,6 +762,14 @@ function cleanupResults() {
       changed = true;
     }
   }
+  for (const key of Object.keys(results)) {
+    if (key === '_champion') continue;
+    const match = getMatchById(key);
+    if (match && match.phase === '32avos') {
+      delete results[key];
+      changed = true;
+    }
+  }
   if (changed) setData('bolao_results', results);
 }
 
