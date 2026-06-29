@@ -758,7 +758,7 @@ function cleanupResults() {
   for (const key of Object.keys(results)) {
     if (key === '_champion') continue;
     if (!results[key].settled) {
-      delete results[key];
+      results[key].settled = true;
       changed = true;
     }
   }
@@ -1393,11 +1393,7 @@ function saveResult(matchId) {
 
   let winner = isKnockout ? (document.querySelector(`input[name="winner-${matchId}"]:checked`)?.value || null) : null;
 
-  let fifaOdds = null;
-  if (match && !match.home.isPlaceholder && !match.away.isPlaceholder) {
-    fifaOdds = calcFifaOdds(match.home.name, match.away.name);
-  }
-  results[matchId] = { home: parseInt(h), away: parseInt(a), fifaOdds, winner };
+  results[matchId] = { home: parseInt(h), away: parseInt(a), winner };
 
   settleMatchBets(matchId, { home: parseInt(h), away: parseInt(a) });
   results[matchId].settled = true;
