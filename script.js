@@ -981,7 +981,6 @@ function renderGroups() {
     </div>`;
   }).join('');
 
-  document.getElementById('bracketSection').innerHTML = '';
 }
 
 function renderBracketInGroups() {
