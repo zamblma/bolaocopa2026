@@ -981,7 +981,51 @@ function renderGroups() {
     </div>`;
   }).join('');
 
+  renderBracketInGroups();
+}
 
+function renderBracketInGroups() {
+  const results = getData('bolao_results', {});
+  const thirdAssignments = getThirdTeamAssignments(results);
+  const el = document.getElementById('bracketSection');
+  const KO_PHASES = ['32avos','Oitavas','Quartas','Semis','Terceiro','Final'];
+  const PHASE_LABELS = { '32avos':'16 avos','Oitavas':'Oitavas','Quartas':'Quartas','Semis':'Semis','Terceiro':'3º Lugar','Final':'Final' };
+
+  el.innerHTML = `<div class="section-title" style="margin-top:2rem;">🏆 CHAVEAMENTO</div>
+    <div class="bracket-grid">` +
+    KO_PHASES.map(phase => {
+      const matches = ALL_MATCHES
+        .filter(m => m.phase === phase)
+        .map(m => getResolvedMatch(m, results, thirdAssignments));
+      return `<div class="bracket-round">
+        <div class="bracket-round-title">${PHASE_LABELS[phase]}</div>
+        ${matches.map(m => {
+          const r = results[m.id];
+          const hasR = r !== undefined;
+          const isPending = m.home.isPlaceholder || m.away.isPlaceholder;
+          const homeWin = hasR && r.home > r.away;
+          const awayWin = hasR && r.away > r.home;
+          return `<div class="bracket-match ${hasR ? 'bracket-done' : ''}">
+            <div class="bracket-teams">
+              <div class="bracket-team ${homeWin ? 'bracket-winner' : ''}">
+                ${flagMarkup(m.home, 'flag flag-inline')}
+                <span class="bracket-team-name">${m.home.name}</span>
+                ${hasR ? `<span class="bracket-score">${r.home}</span>` : ''}
+                ${homeWin ? '<span class="bracket-adv">✅</span>' : ''}
+              </div>
+              <div class="bracket-team ${awayWin ? 'bracket-winner' : ''}">
+                ${flagMarkup(m.away, 'flag flag-inline')}
+                <span class="bracket-team-name">${m.away.name}</span>
+                ${hasR ? `<span class="bracket-score">${r.away}</span>` : ''}
+                ${awayWin ? '<span class="bracket-adv">✅</span>' : ''}
+              </div>
+            </div>
+            ${isPending ? '<div class="bracket-pending">⏳ A definir</div>' : ''}
+          </div>`;
+        }).join('')}
+      </div>`;
+    }).join('') +
+  `</div>`;
 }
 
 function renderPhaseTabs() {
