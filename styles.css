@@ -1430,11 +1430,13 @@
 
   /* ===== BRACKET ===== */
   .bracket-in-groups {
-    margin-bottom: 2rem;
+    grid-column: 1 / -1;
+    margin-bottom: 1rem;
     padding: 1rem;
     background: var(--card-bg);
     border-radius: var(--radius-lg);
     border: 1px solid var(--gray-light);
+    overflow-x: auto;
   }
 
   .bracket-grid {
