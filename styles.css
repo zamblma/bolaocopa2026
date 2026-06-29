@@ -1429,6 +1429,14 @@
   .score-input.locked { opacity: 0.35; cursor: not-allowed; }
 
   /* ===== BRACKET ===== */
+  .bracket-in-groups {
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: var(--card-bg);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--gray-light);
+  }
+
   .bracket-grid {
     display: grid;
     grid-template-columns: repeat(6, 1fr);

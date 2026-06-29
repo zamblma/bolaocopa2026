@@ -928,7 +928,7 @@ function renderGroups() {
       </div>
     </div>` : '';
 
-  grid.innerHTML = nextHtml + Object.entries(GROUPS).map(([g, data], gi) => {
+  grid.innerHTML = nextHtml + renderBracketInGroups() + Object.entries(GROUPS).map(([g, data], gi) => {
     const standings = getGroupStandings(g, results);
     const hasResults = standings.some(t => t.played > 0);
     const groupPlayed = getGroupMatches(g).filter(m => results[m.id]).length;
@@ -981,17 +981,17 @@ function renderGroups() {
     </div>`;
   }).join('');
 
-  renderBracketInGroups();
+  document.getElementById('bracketSection').innerHTML = '';
 }
 
 function renderBracketInGroups() {
   const results = getData('bolao_results', {});
   const thirdAssignments = getThirdTeamAssignments(results);
-  const el = document.getElementById('bracketSection');
   const KO_PHASES = ['32avos','Oitavas','Quartas','Semis','Terceiro','Final'];
   const PHASE_LABELS = { '32avos':'16 avos','Oitavas':'Oitavas','Quartas':'Quartas','Semis':'Semis','Terceiro':'3º Lugar','Final':'Final' };
 
-  el.innerHTML = `<div class="section-title" style="margin-top:2rem;">🏆 CHAVEAMENTO</div>
+  return `<div class="bracket-in-groups">
+    <div class="section-title" style="margin:0;">🏆 CHAVEAMENTO</div>
     <div class="bracket-grid">` +
     KO_PHASES.map(phase => {
       const matches = ALL_MATCHES
@@ -1025,7 +1025,7 @@ function renderBracketInGroups() {
         }).join('')}
       </div>`;
     }).join('') +
-  `</div>`;
+  `</div></div>`;
 }
 
 function renderPhaseTabs() {
