@@ -442,7 +442,6 @@ async function initFirebaseData() {
     const fbApp = firebase.apps.length ? firebase.app() : firebase.initializeApp(window.firebaseConfig);
     auth = firebase.auth(fbApp);
     db = firebase.firestore(fbApp);
-    db.settings({ experimentalForceLongPolling: true }, { merge: true });
     usersRef = db.collection('bolao_users');
     palpitesRef = db.collection('bolao_palpites');
     resultsRef = db.collection('bolao_config').doc('results');
