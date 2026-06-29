@@ -293,15 +293,17 @@ function getMatchById(matchId) {
 function getMatchWinner(matchId, results) {
   const match = getResolvedMatch(getMatchById(matchId), results);
   const result = results[matchId];
-  if (!match || !result || result.home === result.away) return null;
-  return result.home > result.away ? match.home : match.away;
+  if (!match || !result) return null;
+  if (result.home !== result.away) return result.home > result.away ? match.home : match.away;
+  return result.winner === 'home' ? match.home : result.winner === 'away' ? match.away : null;
 }
 
 function getMatchLoser(matchId, results) {
   const match = getResolvedMatch(getMatchById(matchId), results);
   const result = results[matchId];
-  if (!match || !result || result.home === result.away) return null;
-  return result.home > result.away ? match.away : match.home;
+  if (!match || !result) return null;
+  if (result.home !== result.away) return result.home > result.away ? match.away : match.home;
+  return result.winner === 'home' ? match.away : result.winner === 'away' ? match.home : null;
 }
 
 function resolveTeamRef(ref, results, thirdAssignments, matchId) {
@@ -1641,7 +1643,19 @@ function renderResults(phase) {
           <div class="result-team-label right">${m.away.name}</div>
           <button class="btn-save-result" onclick="saveResult(${m.id})">💾 Salvar Resultado</button>
           ${hasR ? `<button class="btn-cancel-result" onclick="clearResult(${m.id})">✕</button>` : ''}
-        </div>` : `
+        </div>
+        ${m.phase !== 'Grupos' ? `
+        <div class="result-winner-row">
+          <label class="winner-option ${hasR && r.winner === 'home' ? 'winner-selected' : ''}">
+            <input type="radio" name="winner-${m.id}" value="home" ${hasR && r.winner === 'home' ? 'checked' : ''} onchange="this.parentElement.classList.add('winner-selected');document.querySelectorAll('.winner-option').forEach(el=>{if(el!==this.parentElement)el.classList.remove('winner-selected')})">
+            🏆 ${m.home.name}
+          </label>
+          <span class="winner-vs">avançou</span>
+          <label class="winner-option ${hasR && r.winner === 'away' ? 'winner-selected' : ''}">
+            <input type="radio" name="winner-${m.id}" value="away" ${hasR && r.winner === 'away' ? 'checked' : ''} onchange="this.parentElement.classList.add('winner-selected');document.querySelectorAll('.winner-option').forEach(el=>{if(el!==this.parentElement)el.classList.remove('winner-selected')})">
+            🏆 ${m.away.name}
+          </label>
+        </div>` : ''}` : `
         <div class="result-row result-view">
           ${hasR ? `
             <div class="result-final-score">
@@ -1659,6 +1673,7 @@ function renderResults(phase) {
               <span class="fifa-odds-value">${r.fifaOdds.away}x</span>
             </div>` : ''}
           ` : `<span style="color:var(--silver);font-size:0.8rem;">⏳ Aguardando resultado oficial</span>`}
+          ${hasR && r.winner ? `<div class="winner-display">🏆 ${r.winner === 'home' ? m.home.name : m.away.name} avançou</div>` : ''}
         </div>`}
       </div>
     `;
@@ -1760,9 +1775,13 @@ function saveResult(matchId) {
   const a = document.getElementById(`ra-${matchId}`).value;
   if (h === '' || a === '') { showToast('Preencha o placar real!', true); return; }
   const match = getMatchById(matchId);
-  if (match?.phase !== 'Grupos' && Number(h) === Number(a)) {
-    showToast('No mata-mata precisa haver um vencedor. Ajuste o placar final.', true);
-    return;
+  const isKnockout = match && match.phase !== 'Grupos';
+  if (isKnockout && Number(h) === Number(a)) {
+    const winnerRadio = document.querySelector(`input[name="winner-${matchId}"]:checked`);
+    if (!winnerRadio) {
+      showToast('Empate no mata-mata! Selecione quem avançou (pênaltis).', true);
+      return;
+    }
   }
 
   const results = getData('bolao_results', {});
@@ -1772,11 +1791,13 @@ function saveResult(matchId) {
     return;
   }
 
+  let winner = isKnockout ? (document.querySelector(`input[name="winner-${matchId}"]:checked`)?.value || null) : null;
+
   let fifaOdds = null;
   if (match && !match.home.isPlaceholder && !match.away.isPlaceholder) {
     fifaOdds = calcFifaOdds(match.home.name, match.away.name);
   }
-  results[matchId] = { home: parseInt(h), away: parseInt(a), fifaOdds };
+  results[matchId] = { home: parseInt(h), away: parseInt(a), fifaOdds, winner };
 
   settleMatchBets(matchId, { home: parseInt(h), away: parseInt(a) });
   results[matchId].settled = true;

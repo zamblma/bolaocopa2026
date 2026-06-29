@@ -1171,6 +1171,47 @@
     font-weight: 700;
   }
 
+  .result-winner-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    background: rgba(0,0,0,0.25);
+    border-radius: 8px;
+    flex-wrap: wrap;
+  }
+  .winner-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 700;
+    background: rgba(255,255,255,0.05);
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .winner-option input { display: none; }
+  .winner-option.winner-selected {
+    background: rgba(0,200,81,0.2);
+    border: 1px solid var(--green);
+  }
+  .winner-vs {
+    color: var(--silver);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .winner-display {
+    margin-top: 0.3rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--green);
+    text-align: center;
+  }
+
   /* ===== RANKING ===== */
   .ranking-header-row {
     display: flex;
