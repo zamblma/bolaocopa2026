@@ -479,6 +479,28 @@ async function initFirebaseData() {
     if (resultsSnap.exists) {
       appData.bolao_results = resultsSnap.data().matches || {};
     }
+
+    // Migra resultados antigos (sem settled) e remove 32avos que estavam corrompidos
+    for (const key of Object.keys(appData.bolao_results)) {
+      if (key === '_champion') continue;
+      const match = ALL_MATCHES.find(m => m.id === Number(key));
+      if (match && match.phase === '32avos') {
+        delete appData.bolao_results[key];
+      } else if (!appData.bolao_results[key].settled) {
+        appData.bolao_results[key].settled = true;
+      }
+    }
+
+    // Salvando local + Firebase para que o onSnapshot nao restaure dados velhos
+    try {
+      await resultsRef.set({
+        matches: appData.bolao_results || {},
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    } catch (e) {
+      console.error('Erro ao salvar cleanup 32avos no Firebase:', e);
+    }
+
     saveLocalData();
     isApplyingRemoteData = false;
 
@@ -758,14 +780,6 @@ function cleanupResults() {
     if (key === '_champion') continue;
     if (!results[key].settled) {
       results[key].settled = true;
-      changed = true;
-    }
-  }
-  for (const key of Object.keys(results)) {
-    if (key === '_champion') continue;
-    const match = getMatchById(key);
-    if (match && match.phase === '32avos') {
-      delete results[key];
       changed = true;
     }
   }
@@ -1393,8 +1407,6 @@ function saveResult(matchId) {
   let winner = isKnockout ? (document.querySelector(`input[name="winner-${matchId}"]:checked`)?.value || null) : null;
 
   results[matchId] = { home: parseInt(h), away: parseInt(a), winner };
-
-  settleMatchBets(matchId, { home: parseInt(h), away: parseInt(a) });
   results[matchId].settled = true;
 
   setData('bolao_results', results);
@@ -1402,10 +1414,6 @@ function saveResult(matchId) {
   renderResults(currentPhase);
   showToast('Resultado salvo! Apostas liquidadas automaticamente.');
   confetti(60);
-}
-
-function settleMatchBets(matchId, result) {
-  // Bets virtuais removidas — sem liquidação
 }
 
 function clearResult(matchId) {
