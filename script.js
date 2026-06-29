@@ -1787,8 +1787,9 @@ function saveResult(matchId) {
   const results = getData('bolao_results', {});
   const existing = results[matchId];
   if (existing?.settled) {
-    showToast('Este jogo já foi liquidado. Limpe o resultado primeiro se quiser re-postar.', true);
-    return;
+    const ok = confirm('⚠️ Este jogo já foi liquidado (pagamentos já foram feitos). Se re-salvar, NOVOS pagamentos serão feitos em cima dos atuais. Deseja continuar?');
+    if (!ok) return;
+    delete results[matchId];
   }
 
   let winner = isKnockout ? (document.querySelector(`input[name="winner-${matchId}"]:checked`)?.value || null) : null;
