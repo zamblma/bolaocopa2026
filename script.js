@@ -359,6 +359,8 @@ let isFirebaseReady = false;
 let isApplyingRemoteData = false;
 let _authHandled = false;
 let currentGroup = '';
+let currentPhase = 'Grupos';
+let matchSearch = '';
 
 let appData = {
   bolao_users: {},
@@ -916,8 +918,119 @@ function renderGroups() {
     </div>`;
   }).join('');
 
+
 }
 
+function renderPhaseTabs() {
+  const tabs = document.getElementById('phaseTabs');
+  tabs.innerHTML = PHASES.map(p => `
+    <button class="phase-tab ${p === currentPhase ? 'active' : ''}"
+      onclick="switchPhase('${p}',this,'match')">${phaseLabel(p)}</button>
+  `).join('');
+}
+
+function phaseLabel(p) {
+  const map = { Grupos:'Grupos', '32avos':'Fase de 32', Oitavas:'Oitavas', Quartas:'Quartas', Semis:'Semis', Terceiro:'3\u00ba Lugar', Final:'Final' };
+  return map[p] || p;
+}
+
+function getTeamByName(name) {
+  return Object.values(GROUPS).flatMap(g => g.teams).find(t => t.name === name) || { name, flag: '\uD83C\uDFF3\uFE0F' };
+}
+
+function saveChampion() {
+  const select = document.getElementById('championSelect');
+  const teamName = select.value;
+  if (!teamName) { showToast('Selecione um time!', true); return; }
+  const users = getData('bolao_users', {});
+  if (!users[currentUser]) users[currentUser] = {};
+  users[currentUser].champion = teamName;
+  setData('bolao_users', users);
+  showToast('Campe\u00e3o definido: ' + teamName + ' \uD83D\uDC51');
+  renderGroups();
+  renderMatches(currentPhase);
+}
+
+function selectAccentColor(hex) {
+  const users = getData('bolao_users', {});
+  if (!users[currentUser]) users[currentUser] = {};
+  if (hex) users[currentUser].accentColor = hex;
+  else delete users[currentUser].accentColor;
+  setData('bolao_users', users);
+  document.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll('.color-option').forEach(el => { if (el.style.background === hex || (!hex && el.style.background === 'var(--gray-mid)')) el.classList.add('selected'); });
+  showToast(hex ? '\uD83C\uDFA8 Cor definida!' : '\uD83C\uDFA8 Cor padr\u00e3o restaurada');
+}
+
+function selectAvatar(emoji) {
+  const users = getData('bolao_users', {});
+  if (!users[currentUser]) users[currentUser] = {};
+  users[currentUser].avatar = emoji;
+  setData('bolao_users', users);
+  document.querySelectorAll('.avatar-option').forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll('.avatar-option').forEach(el => { if (el.textContent === emoji) el.classList.add('selected'); });
+  const display = document.getElementById('currentAvatarDisplay');
+  if (display) display.textContent = emoji;
+  showToast('\uD83C\uDFAD Avatar: ' + emoji);
+}
+
+function updateChampionFlagPreview() {
+  const select = document.getElementById('championSelect');
+  const preview = document.getElementById('championFlagPreview');
+  const name = select.value;
+  if (name) {
+    const team = getTeamByName(name);
+    preview.innerHTML = flagMarkup(team, 'flag flag-inline');
+  } else {
+    preview.innerHTML = '';
+  }
+}
+
+function switchPhase(phase, btn, type) {
+  currentPhase = phase;
+  document.querySelectorAll(type === 'match' ? '#phaseTabs .phase-tab' : '#resultPhaseTabs .phase-tab')
+    .forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (phase !== 'Grupos') currentGroup = '';
+  if (type === 'match') renderMatches(phase);
+  else renderResults(phase);
+  document.querySelector('.section-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function goToMatch(matchId) {
+  const match = ALL_MATCHES.find(m => m.id === matchId);
+  if (!match) return;
+  currentGroup = match.phase === 'Grupos' ? match.group : '';
+  showPage('palpites', document.querySelector('.nav-btn[data-page="palpites"]'));
+  const tabs = document.querySelectorAll('#phaseTabs .phase-tab');
+  const targetTab = Array.from(tabs).find(t => t.textContent.trim() === phaseLabel(match.phase));
+  if (targetTab) switchPhase(match.phase, targetTab, 'match');
+  setTimeout(() => {
+    const el = document.getElementById('mc-' + matchId);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 200);
+}
+
+function goToGroupMatches(group) {
+  currentGroup = group;
+  showPage('palpites', document.querySelector('.nav-btn[data-page="palpites"]'));
+  const tab = document.querySelector('#phaseTabs .phase-tab');
+  if (tab) switchPhase('Grupos', tab, 'match');
+}
+
+function filterByGroup(group) {
+  currentGroup = group;
+  renderMatches('Grupos');
+  document.querySelectorAll('.group-pill').forEach(p => p.classList.toggle('active', p.dataset.group === group));
+}
+
+function renderGroupPills() {
+  const container = document.getElementById('groupPills');
+  if (!container) return;
+  const groups = Object.keys(GROUPS);
+  container.innerHTML = '<button class="group-pill ' + (!currentGroup ? 'active' : '') + '" data-group="" onclick="filterByGroup(\'\')">Todos</button>\n    ' + groups.map(g => '<button class="group-pill ' + (currentGroup === g ? 'active' : '') + '" data-group="' + g + '" onclick="filterByGroup(\'' + g + '\')">Grupo ' + g + '</button>').join('');
+  container.style.display = currentPhase === 'Grupos' ? 'flex' : 'none';
+}
 
 function filterMatchesBySearch(matches, search) {
   if (!search) return matches;
