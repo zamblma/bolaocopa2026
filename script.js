@@ -1094,16 +1094,16 @@ function renderBracketGrid(matchIdsByRound, results, thirdAssignments, labels) {
 
 function renderFullBracket(results, thirdAssignments, compact = false) {
   const leftRounds = [
-    [73, 75, 74, 77, 76, 78, 79, 80],
-    [90, 89, 91, 92],
+    [74, 77, 73, 75, 83, 84, 81, 82],
+    [89, 90, 93, 94],
     [97, 98],
     [101],
   ];
   const rightRounds = [
     [102],
-    [100, 99],
-    [96, 95, 94, 93],
-    [85, 87, 86, 88, 81, 82, 83, 84],
+    [99, 100],
+    [91, 92, 96, 95],
+    [76, 78, 79, 80, 86, 88, 85, 87],
   ];
 
   const finalMatch = getResolvedMatch(ALL_MATCHES.find(m => m.id === 104), results, thirdAssignments);
