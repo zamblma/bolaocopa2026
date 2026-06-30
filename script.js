@@ -983,8 +983,8 @@ function renderGroups() {
 
 }
 
-function renderBracketGrid(matchIdsByRound, results, thirdAssignments) {
-  const roundNames = ['32avos', 'Oitavas', 'Quartas', 'Semifinal'];
+function renderBracketGrid(matchIdsByRound, results, thirdAssignments, labels) {
+  const roundNames = labels || ['32avos', 'Oitavas', 'Quartas', 'Semifinal'];
   let html = `<div class="bg-round-labels">`;
   matchIdsByRound.forEach((_, r) => {
     html += `<div class="bg-round-label">${roundNames[r] || ''}</div>`;
@@ -1019,10 +1019,10 @@ function renderFullBracket(results, thirdAssignments, compact = false) {
     [101],
   ];
   const rightRounds = [
-    [81, 82, 83, 84, 86, 88, 85, 87],
-    [94, 93, 95, 96],
-    [99, 100],
     [102],
+    [100, 99],
+    [96, 95, 94, 93],
+    [87, 85, 88, 86, 84, 83, 82, 81],
   ];
 
   const finalMatch = getResolvedMatch(ALL_MATCHES.find(m => m.id === 104), results, thirdAssignments);
@@ -1053,7 +1053,7 @@ function renderFullBracket(results, thirdAssignments, compact = false) {
       </div>
       <div class="bracket-half">
         <div class="bracket-half-title">🏴 Chave Direita</div>
-        <div class="bracket-half-content">${renderBracketGrid(rightRounds, results, thirdAssignments)}</div>
+        <div class="bracket-half-content">${renderBracketGrid(rightRounds, results, thirdAssignments, ['Semifinal', 'Quartas', 'Oitavas', '32avos'])}</div>
       </div>
     </div>
   </div>`;
