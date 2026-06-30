@@ -1010,7 +1010,7 @@ function renderGroups() {
       </div>` : ''}
     </div>`;
   }).join('');
-
+  requestAnimationFrame(() => { const e = grid.querySelector('.bracket-half:last-child .bracket-half-content'); if (e) e.scrollLeft = e.scrollWidth; });
 }
 
 function renderBracketGrid(matchIdsByRound, results, thirdAssignments, labels) {
@@ -2062,6 +2062,7 @@ function renderBracket() {
   const thirdAssignments = getThirdTeamAssignments(results);
   const container = document.getElementById('bracketContainer');
   container.innerHTML = renderFullBracket(results, thirdAssignments, false);
+  requestAnimationFrame(() => { const e = container.querySelector('.bracket-half:last-child .bracket-half-content'); if (e) e.scrollLeft = e.scrollWidth; });
 }
 
 // ============================================================
