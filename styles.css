@@ -1472,39 +1472,39 @@
 
   .bg-round-labels {
     display: flex;
-    gap: 0.3rem;
-    margin-bottom: 0.2rem;
+    gap: 0.12rem;
+    margin-bottom: 0.15rem;
   }
 
   .bg-round-label {
     flex: 1;
     text-align: center;
-    font-size: 0.55rem;
+    font-size: 0.5rem;
     font-weight: 700;
     color: var(--green);
     text-transform: uppercase;
-    letter-spacing: 0.05rem;
+    letter-spacing: 0.03rem;
   }
 
   .bg-grid {
-    display: flex;
-    gap: 0.3rem;
+    display: grid;
     min-width: 0;
+    position: relative;
   }
 
-  .bg-round-column {
-    flex: 1;
-    min-width: 0;
+  .bg-cell {
     display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
+    align-items: center;
+    justify-content: center;
   }
 
   .bg-match {
-    background: linear-gradient(145deg, rgba(26,26,26,0.9) 0%, rgba(20,20,20,0.95) 100%);
+    width: calc(100% - 0.08rem);
+    background: linear-gradient(145deg, rgba(26,26,26,0.95) 0%, rgba(20,20,20,0.98) 100%);
     border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 5px;
-    padding: 0.12rem 0.25rem;
+    border-radius: 4px;
+    padding: 0.08rem 0.2rem;
+    margin: 0.04rem;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
@@ -1512,16 +1512,16 @@
     border-color: rgba(0,200,81,0.4);
   }
 
-  .bg-done { border-color: rgba(0,200,81,0.25); box-shadow: 0 0 4px rgba(0,200,81,0.06); }
+  .bg-done { border-color: rgba(0,200,81,0.2); box-shadow: 0 0 3px rgba(0,200,81,0.05); }
 
   .bg-team {
     display: flex;
     align-items: center;
-    gap: 0.15rem;
-    font-size: 0.55rem;
+    gap: 0.12rem;
+    font-size: 0.5rem;
     font-weight: 600;
     color: var(--silver);
-    line-height: 1.2;
+    line-height: 1.15;
   }
 
   .bg-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1530,13 +1530,27 @@
 
   .bg-score {
     font-family: 'Gasoek One', sans-serif;
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     color: var(--green);
     margin-left: auto;
     flex-shrink: 0;
   }
 
-  .bg-adv { font-size: 0.45rem; flex-shrink: 0; }
+  .bg-adv { font-size: 0.4rem; flex-shrink: 0; }
+
+  .bg-svg {
+    z-index: 0;
+    pointer-events: none;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .bg-svg-line {
+    stroke: rgba(0,200,81,0.2);
+    stroke-width: 1;
+    fill: none;
+  }
 
   .bracket-center {
     flex: 0 0 auto;

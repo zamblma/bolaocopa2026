@@ -985,29 +985,80 @@ function renderGroups() {
 
 function renderBracketGrid(matchIdsByRound, results, thirdAssignments, labels) {
   const roundNames = labels || ['32avos', 'Oitavas', 'Quartas', 'Semifinal'];
+  const rounds = matchIdsByRound.length;
+  const totalRows = Math.pow(2, rounds);
+  const isNormal = matchIdsByRound[0].length >= matchIdsByRound[rounds - 1].length;
+
+  const rowPos = (r, mi) => Math.pow(2, isNormal ? r : rounds - r - 1) * (2 * mi + 1);
+  const rowSpan = (r) => Math.pow(2, isNormal ? r + 1 : rounds - r);
+
+  const card = (id) => {
+    const m = getResolvedMatch(ALL_MATCHES.find(x => x.id === id), results, thirdAssignments);
+    if (!m) return '';
+    const res = results[id];
+    const hasR = res !== undefined;
+    const w = hasR ? getMatchWinner(id, results) : null;
+    const hw = w && w.name === m.home.name;
+    const aw = w && w.name === m.away.name;
+    return `<div class="bg-match ${hasR ? 'bg-done' : ''}">
+      <div class="bg-team ${hw ? 'bg-win' : ''}"><span class="bg-flag">${flagMarkup(m.home,'flag flag-inline')}</span><span class="bg-name">${m.home.name}</span>${hasR ? `<span class="bg-score">${res.home}</span>` : ''}${hw ? '<span class="bg-adv">✅</span>' : ''}</div>
+      <div class="bg-team ${aw ? 'bg-win' : ''}"><span class="bg-flag">${flagMarkup(m.away,'flag flag-inline')}</span><span class="bg-name">${m.away.name}</span>${hasR ? `<span class="bg-score">${res.away}</span>` : ''}${aw ? '<span class="bg-adv">✅</span>' : ''}</div>
+    </div>`;
+  };
+
+  const rowY = (row) => (row - 0.5) / totalRows;
+  const colX = (col) => (col - 0.5) / rounds;
+
   let html = `<div class="bg-round-labels">`;
-  matchIdsByRound.forEach((_, r) => {
-    html += `<div class="bg-round-label">${roundNames[r] || ''}</div>`;
-  });
+  matchIdsByRound.forEach((_, r) => { html += `<div class="bg-round-label">${roundNames[r] || ''}</div>`; });
   html += '</div>';
-  html += `<div class="bg-grid">`;
+  html += `<div class="bg-grid" style="grid-template-columns: repeat(${rounds}, 1fr); grid-template-rows: repeat(${totalRows}, 1.4rem);">`;
+
+  // Match cards
   matchIdsByRound.forEach((ids, r) => {
-    html += `<div class="bg-round-column">`;
-    ids.forEach(id => {
-      const m = getResolvedMatch(ALL_MATCHES.find(x => x.id === id), results, thirdAssignments);
-      const res = results[id];
-      const hasR = res !== undefined;
-      const w = hasR ? getMatchWinner(id, results) : null;
-      const hw = w && w.name === m.home.name;
-      const aw = w && w.name === m.away.name;
-      html += `<div class="bg-match ${hasR ? 'bg-done' : ''}">
-        <div class="bg-team ${hw ? 'bg-win' : ''}"><span class="bg-flag">${flagMarkup(m.home,'flag flag-inline')}</span><span class="bg-name">${m.home.name}</span>${hasR ? `<span class="bg-score">${res.home}</span>` : ''}${hw ? '<span class="bg-adv">✅</span>' : ''}</div>
-        <div class="bg-team ${aw ? 'bg-win' : ''}"><span class="bg-flag">${flagMarkup(m.away,'flag flag-inline')}</span><span class="bg-name">${m.away.name}</span>${hasR ? `<span class="bg-score">${res.away}</span>` : ''}${aw ? '<span class="bg-adv">✅</span>' : ''}</div>
-      </div>`;
+    ids.forEach((id, mi) => {
+      const pos = rowPos(r, mi);
+      const spanEnd = pos + rowSpan(r);
+      html += `<div class="bg-cell" style="grid-column:${r+1};grid-row:${pos}/${spanEnd};z-index:1">${card(id)}</div>`;
     });
-    html += '</div>';
   });
-  html += '</div>';
+
+  // SVG connector overlay
+  const vbW = rounds * 100;
+  const vbH = totalRows * 100;
+  html += `<svg class="bg-svg" viewBox="0 0 ${vbW} ${vbH}" preserveAspectRatio="none" style="grid-column:1/-1;grid-row:1/-1;">`;
+
+  for (let r = 0; r < rounds - 1; r++) {
+    const cur = matchIdsByRound[r];
+    const nxt = matchIdsByRound[r + 1];
+    const feedCol = cur.length >= nxt.length ? r : r + 1;
+    const convCol = cur.length >= nxt.length ? r + 1 : r;
+    const pairs = Math.min(cur.length, nxt.length);
+
+    for (let k = 0; k < pairs; k++) {
+      const fr = feedCol;
+      const pos1 = rowPos(fr, 2 * k);
+      const pos2 = rowPos(fr, 2 * k + 1);
+      const end2 = pos2 + rowSpan(fr);
+
+      const cr = convCol;
+      const convPos = rowPos(cr, k);
+      const convCen = convPos + rowSpan(cr) / 2;
+
+      const xF = colX(fr + 1) * vbW;
+      const xC = colX(cr + 1) * vbW;
+      const y1 = rowY(pos1) * vbH;
+      const y2 = rowY(end2) * vbH;
+      const yM = (y1 + y2) / 2;
+      const yCC = rowY(convCen) * vbH;
+
+      html += `<line x1="${xF}" y1="${y1}" x2="${xF}" y2="${y2}" class="bg-svg-line"/>`;
+      html += `<line x1="${Math.min(xF, xC)}" y1="${yM}" x2="${Math.max(xF, xC)}" y2="${yM}" class="bg-svg-line"/>`;
+      html += `<line x1="${xC}" y1="${yCC}" x2="${xC}" y2="${yM}" class="bg-svg-line"/>`;
+    }
+  }
+
+  html += '</svg></div>';
   return html;
 }
 
