@@ -1002,8 +1002,9 @@ function renderBracketInGroups() {
           const r = results[m.id];
           const hasR = r !== undefined;
           const isPending = m.home.isPlaceholder || m.away.isPlaceholder;
-          const homeWin = hasR && r.home > r.away;
-          const awayWin = hasR && r.away > r.home;
+          const winner = hasR ? getMatchWinner(m.id, results) : null;
+          const homeWin = winner && winner.name === m.home.name;
+          const awayWin = winner && winner.name === m.away.name;
           return `<div class="bracket-match ${hasR ? 'bracket-done' : ''}">
             <div class="bracket-teams">
               <div class="bracket-team ${homeWin ? 'bracket-winner' : ''}">
@@ -1956,8 +1957,9 @@ function renderBracket() {
           const r = results[m.id];
           const hasR = r !== undefined;
           const isPending = m.home.isPlaceholder || m.away.isPlaceholder;
-          const homeWin = hasR && r.home > r.away;
-          const awayWin = hasR && r.away > r.home;
+          const winner = hasR ? getMatchWinner(m.id, results) : null;
+          const homeWin = winner && winner.name === m.home.name;
+          const awayWin = winner && winner.name === m.away.name;
           return `<div class="bracket-match ${hasR ? 'bracket-done' : ''}">
             <div class="bracket-teams">
               <div class="bracket-team ${homeWin ? 'bracket-winner' : ''}">
