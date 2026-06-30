@@ -984,33 +984,28 @@ function renderGroups() {
 }
 
 function renderBracketGrid(matchIdsByRound, results, thirdAssignments) {
-  const rounds = matchIdsByRound.length;
-  if (rounds === 0) return '';
-  const totalRows = Math.pow(2, rounds);
   const roundNames = ['32avos', 'Oitavas', 'Quartas', 'Semifinal'];
   let html = `<div class="bg-round-labels">`;
   matchIdsByRound.forEach((_, r) => {
     html += `<div class="bg-round-label">${roundNames[r] || ''}</div>`;
   });
   html += '</div>';
-  html += `<div class="bg-grid" style="grid-template-columns: repeat(${rounds}, 1fr); grid-template-rows: repeat(${totalRows}, auto);">`;
+  html += `<div class="bg-grid">`;
   matchIdsByRound.forEach((ids, r) => {
-    ids.forEach((id, mi) => {
-      const pos = Math.pow(2, r) * (2 * mi + 1);
-      const spanEnd = pos + Math.pow(2, r + 1);
+    html += `<div class="bg-round-column">`;
+    ids.forEach(id => {
       const m = getResolvedMatch(ALL_MATCHES.find(x => x.id === id), results, thirdAssignments);
       const res = results[id];
       const hasR = res !== undefined;
       const w = hasR ? getMatchWinner(id, results) : null;
       const hw = w && w.name === m.home.name;
       const aw = w && w.name === m.away.name;
-      html += `<div class="bg-cell" style="grid-column:${r+1};grid-row:${pos}/${spanEnd};">
-        <div class="bg-match ${hasR ? 'bg-done' : ''}">
-          <div class="bg-team ${hw ? 'bg-win' : ''}"><span class="bg-flag">${flagMarkup(m.home,'flag flag-inline')}</span><span class="bg-name">${m.home.name}</span>${hasR ? `<span class="bg-score">${res.home}</span>` : ''}${hw ? '<span class="bg-adv">✅</span>' : ''}</div>
-          <div class="bg-team ${aw ? 'bg-win' : ''}"><span class="bg-flag">${flagMarkup(m.away,'flag flag-inline')}</span><span class="bg-name">${m.away.name}</span>${hasR ? `<span class="bg-score">${res.away}</span>` : ''}${aw ? '<span class="bg-adv">✅</span>' : ''}</div>
-        </div>
+      html += `<div class="bg-match ${hasR ? 'bg-done' : ''}">
+        <div class="bg-team ${hw ? 'bg-win' : ''}"><span class="bg-flag">${flagMarkup(m.home,'flag flag-inline')}</span><span class="bg-name">${m.home.name}</span>${hasR ? `<span class="bg-score">${res.home}</span>` : ''}${hw ? '<span class="bg-adv">✅</span>' : ''}</div>
+        <div class="bg-team ${aw ? 'bg-win' : ''}"><span class="bg-flag">${flagMarkup(m.away,'flag flag-inline')}</span><span class="bg-name">${m.away.name}</span>${hasR ? `<span class="bg-score">${res.away}</span>` : ''}${aw ? '<span class="bg-adv">✅</span>' : ''}</div>
       </div>`;
     });
+    html += '</div>';
   });
   html += '</div>';
   return html;
