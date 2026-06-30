@@ -983,47 +983,52 @@ function renderGroups() {
 
 }
 
-function renderBracketTree(node, results, thirdAssignments) {
-  if (node.id) {
-    const m = getResolvedMatch(ALL_MATCHES.find(x => x.id === node.id), results, thirdAssignments);
-    const r = results[node.id];
-    const hasR = r !== undefined;
-    const w = hasR ? getMatchWinner(node.id, results) : null;
-    const hw = w && w.name === m.home.name;
-    const aw = w && w.name === m.away.name;
-    return `<div class="bt-leaf bs-match ${hasR ? 'bs-done' : ''}">
-      <div class="bs-team ${hw ? 'bs-win' : ''}"><span class="bs-flag">${flagMarkup(m.home,'flag flag-inline')}</span><span class="bs-name">${m.home.name}</span>${hasR ? `<span class="bs-score">${r.home}</span>` : ''}${hw ? '<span class="bs-adv">✅</span>' : ''}</div>
-      <div class="bs-team ${aw ? 'bs-win' : ''}"><span class="bs-flag">${flagMarkup(m.away,'flag flag-inline')}</span><span class="bs-name">${m.away.name}</span>${hasR ? `<span class="bs-score">${r.away}</span>` : ''}${aw ? '<span class="bs-adv">✅</span>' : ''}</div>
-    </div>`;
-  }
-  const left = renderBracketTree(node.left, results, thirdAssignments);
-  const right = renderBracketTree(node.right, results, thirdAssignments);
-  const converge = node.converge ? (() => {
-    const m = getResolvedMatch(ALL_MATCHES.find(x => x.id === node.converge), results, thirdAssignments);
-    const r = results[node.converge];
-    const hasR = r !== undefined;
-    const w = hasR ? getMatchWinner(node.converge, results) : null;
-    const hw = w && w.name === m.home.name;
-    const aw = w && w.name === m.away.name;
-    return `<div class="bt-converge bs-match bs-target ${hasR ? 'bs-done' : ''}">
-      <div class="bs-team ${hw ? 'bs-win' : ''}"><span class="bs-flag">${flagMarkup(m.home,'flag flag-inline')}</span><span class="bs-name">${m.home.name}</span>${hasR ? `<span class="bs-score">${r.home}</span>` : ''}${hw ? '<span class="bs-adv">✅</span>' : ''}</div>
-      <div class="bs-team ${aw ? 'bs-win' : ''}"><span class="bs-flag">${flagMarkup(m.away,'flag flag-inline')}</span><span class="bs-name">${m.away.name}</span>${hasR ? `<span class="bs-score">${r.away}</span>` : ''}${aw ? '<span class="bs-adv">✅</span>' : ''}</div>
-    </div>`;
-  })() : '';
-  return `<div class="bt-branch"><div class="bt-children"><div class="bt-child">${left}</div><div class="bt-child">${right}</div></div>${converge}</div>`;
+function renderBracketGrid(matchIdsByRound, results, thirdAssignments) {
+  const rounds = matchIdsByRound.length;
+  if (rounds === 0) return '';
+  const totalRows = Math.pow(2, rounds);
+  const roundNames = ['32avos', 'Oitavas', 'Quartas', 'Semifinal'];
+  let html = `<div class="bg-round-labels">`;
+  matchIdsByRound.forEach((_, r) => {
+    html += `<div class="bg-round-label">${roundNames[r] || ''}</div>`;
+  });
+  html += '</div>';
+  html += `<div class="bg-grid" style="grid-template-columns: repeat(${rounds}, 1fr); grid-template-rows: repeat(${totalRows}, auto);">`;
+  matchIdsByRound.forEach((ids, r) => {
+    ids.forEach((id, mi) => {
+      const pos = Math.pow(2, r) * (2 * mi + 1);
+      const spanEnd = pos + Math.pow(2, r + 1);
+      const m = getResolvedMatch(ALL_MATCHES.find(x => x.id === id), results, thirdAssignments);
+      const res = results[id];
+      const hasR = res !== undefined;
+      const w = hasR ? getMatchWinner(id, results) : null;
+      const hw = w && w.name === m.home.name;
+      const aw = w && w.name === m.away.name;
+      html += `<div class="bg-cell" style="grid-column:${r+1};grid-row:${pos}/${spanEnd};">
+        <div class="bg-match ${hasR ? 'bg-done' : ''}">
+          <div class="bg-team ${hw ? 'bg-win' : ''}"><span class="bg-flag">${flagMarkup(m.home,'flag flag-inline')}</span><span class="bg-name">${m.home.name}</span>${hasR ? `<span class="bg-score">${res.home}</span>` : ''}${hw ? '<span class="bg-adv">✅</span>' : ''}</div>
+          <div class="bg-team ${aw ? 'bg-win' : ''}"><span class="bg-flag">${flagMarkup(m.away,'flag flag-inline')}</span><span class="bg-name">${m.away.name}</span>${hasR ? `<span class="bg-score">${res.away}</span>` : ''}${aw ? '<span class="bg-adv">✅</span>' : ''}</div>
+        </div>
+      </div>`;
+    });
+  });
+  html += '</div>';
+  return html;
 }
 
 function renderFullBracket(results, thirdAssignments, compact = false) {
-  const leftTree = {
-    converge: 101,
-    left: { converge: 97, left: { converge: 90, left: {id:73}, right: {id:75} }, right: { converge: 89, left: {id:74}, right: {id:77} } },
-    right: { converge: 98, left: { converge: 91, left: {id:76}, right: {id:78} }, right: { converge: 92, left: {id:79}, right: {id:80} } }
-  };
-  const rightTree = {
-    converge: 102,
-    left: { converge: 99, left: { converge: 94, left: {id:81}, right: {id:82} }, right: { converge: 93, left: {id:83}, right: {id:84} } },
-    right: { converge: 100, left: { converge: 95, left: {id:86}, right: {id:88} }, right: { converge: 96, left: {id:85}, right: {id:87} } }
-  };
+  const leftRounds = [
+    [73, 75, 74, 77, 76, 78, 79, 80],
+    [90, 89, 91, 92],
+    [97, 98],
+    [101],
+  ];
+  const rightRounds = [
+    [81, 82, 83, 84, 86, 88, 85, 87],
+    [94, 93, 95, 96],
+    [99, 100],
+    [102],
+  ];
 
   const finalMatch = getResolvedMatch(ALL_MATCHES.find(m => m.id === 104), results, thirdAssignments);
   const thirdMatch = getResolvedMatch(ALL_MATCHES.find(m => m.id === 103), results, thirdAssignments);
@@ -1045,7 +1050,7 @@ function renderFullBracket(results, thirdAssignments, compact = false) {
     <div class="bracket-two-sides">
       <div class="bracket-half">
         <div class="bracket-half-title">🏴 Chave Esquerda</div>
-        <div class="bracket-half-content">${renderBracketTree(leftTree, results, thirdAssignments)}</div>
+        <div class="bracket-half-content">${renderBracketGrid(leftRounds, results, thirdAssignments)}</div>
       </div>
       <div class="bracket-center">
         <div class="bracket-center-card"><div class="bracket-round-title">🏆 Final</div>${rCard(finalMatch)}</div>
@@ -1053,7 +1058,7 @@ function renderFullBracket(results, thirdAssignments, compact = false) {
       </div>
       <div class="bracket-half">
         <div class="bracket-half-title">🏴 Chave Direita</div>
-        <div class="bracket-half-content">${renderBracketTree(rightTree, results, thirdAssignments)}</div>
+        <div class="bracket-half-content">${renderBracketGrid(rightRounds, results, thirdAssignments)}</div>
       </div>
     </div>
   </div>`;
