@@ -1429,7 +1429,7 @@
   .score-input.locked { opacity: 0.35; cursor: not-allowed; }
 
   /* ===== BRACKET ===== */
-  .bracket-in-groups {
+  .bracket-container {
     grid-column: 1 / -1;
     margin-bottom: 1rem;
     padding: 1rem;
@@ -1437,9 +1437,6 @@
     border-radius: var(--radius-lg);
     border: 1px solid var(--gray-light);
     overflow-x: auto;
-  }
-
-  .bracket-container {
     width: 100%;
   }
 
