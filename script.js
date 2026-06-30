@@ -983,131 +983,97 @@ function renderGroups() {
 
 }
 
-function renderBracketGrid(matchIdsByRound, results, thirdAssignments, labels) {
-  const roundNames = labels || ['32avos', 'Oitavas', 'Quartas', 'Semifinal'];
-  const rounds = matchIdsByRound.length;
-  const totalRows = Math.pow(2, rounds);
-  const isNormal = matchIdsByRound[0].length >= matchIdsByRound[rounds - 1].length;
+function renderBracketList(results, thirdAssignments, compact) {
+  const phases = [
+    { key: '32avos', label: 'Eliminatórias', ids: [73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88] },
+    { key: 'Oitavas', label: 'Oitavas de final', ids: [89,90,91,92,93,94,95,96] },
+    { key: 'Quartas', label: 'Quartas de final', ids: [97,98,99,100] },
+    { key: 'Semis', label: 'Semifinais', ids: [101,102] },
+    { key: 'Final', label: 'Final', ids: [104,103] },
+  ];
 
-  const rowPos = (r, mi) => Math.pow(2, isNormal ? r : rounds - r - 1) * (2 * mi + 1);
-  const rowSpan = (r) => Math.pow(2, isNormal ? r + 1 : rounds - r);
+  const closestIdx = (() => {
+    const now = new Date();
+    for (let i = 0; i < phases.length; i++) {
+      const ids = phases[i].ids;
+      const anyPast = ids.some(id => {
+        const m = ALL_MATCHES.find(x => x.id === id);
+        return m && m.date && new Date(m.date) <= now;
+      });
+      const allFuture = ids.every(id => {
+        const m = ALL_MATCHES.find(x => x.id === id);
+        return !m || !m.date || new Date(m.date) > now;
+      });
+      if (anyPast && !allFuture) return i;
+      if (allFuture && i === 0) return 0;
+    }
+    return phases.length - 1;
+  })();
 
-  const card = (id) => {
+  const initial = compact ? phases[Math.min(closestIdx, phases.length - 1)].key : phases[0].key;
+
+  const matchCard = (id) => {
     const m = getResolvedMatch(ALL_MATCHES.find(x => x.id === id), results, thirdAssignments);
     if (!m) return '';
-    const res = results[id];
-    const hasR = res !== undefined;
+    const r = results[id];
+    const hasR = r !== undefined;
     const w = hasR ? getMatchWinner(id, results) : null;
     const hw = w && w.name === m.home.name;
     const aw = w && w.name === m.away.name;
-    return `<div class="bg-match ${hasR ? 'bg-done' : ''}">
-      <div class="bg-team ${hw ? 'bg-win' : ''}"><span class="bg-flag">${flagMarkup(m.home,'flag flag-inline')}</span><span class="bg-name">${m.home.name}</span>${hasR ? `<span class="bg-score">${res.home}</span>` : ''}${hw ? '<span class="bg-adv">✅</span>' : ''}</div>
-      <div class="bg-team ${aw ? 'bg-win' : ''}"><span class="bg-flag">${flagMarkup(m.away,'flag flag-inline')}</span><span class="bg-name">${m.away.name}</span>${hasR ? `<span class="bg-score">${res.away}</span>` : ''}${aw ? '<span class="bg-adv">✅</span>' : ''}</div>
+    const isDraw = hasR && r.home === r.away;
+    const penScore = isDraw && w ? `(${r.penHome || 0}-${r.penAway || 0})` : '';
+    const isPen = hasR && isDraw && w;
+
+    const dt = m.date ? new Date(m.date) : null;
+    const now = new Date();
+    let status = '';
+    if (dt) {
+      const dayDiff = Math.floor((dt - now) / 86400000);
+      if (hasR && isPen) status = 'FIM (P)';
+      else if (hasR) status = 'FIM';
+      else if (dayDiff < 0 && Math.abs(dayDiff) < 1) status = 'Ao vivo';
+      else if (dayDiff < 0) status = 'FIM';
+      else if (dayDiff === 0) status = `${dt.getHours().toString().padStart(2,'0')}:${dt.getMinutes().toString().padStart(2,'0')}`;
+      else {
+        const weekdays = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+        status = `${weekdays[dt.getDay()]} ${dt.getDate().toString().padStart(2,'0')}/${(dt.getMonth()+1).toString().padStart(2,'0')}`;
+      }
+    }
+
+    const showScore = (side) => hasR ? `<span class="bl-score">${r[side]}</span>` : '';
+    const showAdv = (isW) => isW && hasR ? '<span class="bl-adv">✅</span>' : '';
+
+    return `<div class="bl-match ${hasR ? 'bl-done' : ''}">
+      <div class="bl-team ${hw ? 'bl-win' : ''}"><span class="bl-flag">${flagMarkup(m.home,'flag flag-inline')}</span><span class="bl-name">${m.home.name}</span>${showScore('home')}${showAdv(hw)}</div>
+      <div class="bl-team ${aw ? 'bl-win' : ''}"><span class="bl-flag">${flagMarkup(m.away,'flag flag-inline')}</span><span class="bl-name">${m.away.name}</span>${showScore('away')}${showAdv(aw)}</div>
+      ${status ? `<div class="bl-status">${status}</div>` : ''}
     </div>`;
   };
 
-  const rowY = (row) => (row - 0.5) / totalRows;
-  const colX = (col) => (col - 0.5) / rounds;
-
-  let html = `<div class="bg-round-labels">`;
-  matchIdsByRound.forEach((_, r) => { html += `<div class="bg-round-label">${roundNames[r] || ''}</div>`; });
-  html += '</div>';
-  html += `<div class="bg-grid" style="grid-template-columns: repeat(${rounds}, 1fr); grid-template-rows: repeat(${totalRows}, 1.4rem);">`;
-
-  // Match cards
-  matchIdsByRound.forEach((ids, r) => {
-    ids.forEach((id, mi) => {
-      const pos = rowPos(r, mi);
-      const spanEnd = pos + rowSpan(r);
-      html += `<div class="bg-cell" style="grid-column:${r+1};grid-row:${pos}/${spanEnd};z-index:1">${card(id)}</div>`;
+  let html = compact ? '' : '<div class="bl-tabs">';
+  if (!compact) {
+    phases.forEach(p => {
+      html += `<button class="bl-tab ${p.key === initial ? 'active' : ''}" onclick="switchBracketTab('${p.key}',this)">${p.label}</button>`;
     });
-  });
-
-  // SVG connector overlay
-  const vbW = rounds * 100;
-  const vbH = totalRows * 100;
-  html += `<svg class="bg-svg" viewBox="0 0 ${vbW} ${vbH}" preserveAspectRatio="none" style="grid-column:1/-1;grid-row:1/-1;">`;
-
-  for (let r = 0; r < rounds - 1; r++) {
-    const cur = matchIdsByRound[r];
-    const nxt = matchIdsByRound[r + 1];
-    const feedCol = cur.length >= nxt.length ? r : r + 1;
-    const convCol = cur.length >= nxt.length ? r + 1 : r;
-    const pairs = Math.min(cur.length, nxt.length);
-
-    for (let k = 0; k < pairs; k++) {
-      const fr = feedCol;
-      const pos1 = rowPos(fr, 2 * k);
-      const pos2 = rowPos(fr, 2 * k + 1);
-      const end2 = pos2 + rowSpan(fr);
-
-      const cr = convCol;
-      const convPos = rowPos(cr, k);
-      const convCen = convPos + rowSpan(cr) / 2;
-
-      const xF = colX(fr + 1) * vbW;
-      const xC = colX(cr + 1) * vbW;
-      const y1 = rowY(pos1) * vbH;
-      const y2 = rowY(end2) * vbH;
-      const yM = (y1 + y2) / 2;
-      const yCC = rowY(convCen) * vbH;
-
-      html += `<line x1="${xF}" y1="${y1}" x2="${xF}" y2="${y2}" class="bg-svg-line"/>`;
-      html += `<line x1="${Math.min(xF, xC)}" y1="${yM}" x2="${Math.max(xF, xC)}" y2="${yM}" class="bg-svg-line"/>`;
-      html += `<line x1="${xC}" y1="${yCC}" x2="${xC}" y2="${yM}" class="bg-svg-line"/>`;
-    }
+    html += '</div>';
+  } else {
+    html += '<div class="bl-compact-header">';
+    const activePhase = phases.find(p => p.key === initial);
+    html += `<span class="bl-phase-label">${activePhase ? activePhase.label : ''}</span>`;
+    html += '</div>';
   }
 
-  html += '</svg></div>';
+  phases.forEach(p => {
+    html += `<div class="bl-round ${p.key === initial ? 'active' : ''}" data-phase="${p.key}">`;
+    p.ids.forEach(id => { html += matchCard(id); });
+    html += '</div>';
+  });
+
   return html;
 }
 
 function renderFullBracket(results, thirdAssignments, compact = false) {
-  const leftRounds = [
-    [73, 75, 74, 77, 76, 78, 79, 80],
-    [90, 89, 91, 92],
-    [97, 98],
-    [101],
-  ];
-  const rightRounds = [
-    [102],
-    [100, 99],
-    [96, 95, 94, 93],
-    [85, 87, 86, 88, 81, 82, 83, 84],
-  ];
-
-  const finalMatch = getResolvedMatch(ALL_MATCHES.find(m => m.id === 104), results, thirdAssignments);
-  const thirdMatch = getResolvedMatch(ALL_MATCHES.find(m => m.id === 103), results, thirdAssignments);
-
-  const rCard = (m) => {
-    const r = results[m.id]; const hR = r !== undefined;
-    const w = hR ? getMatchWinner(m.id, results) : null;
-    const hw = w && w.name === m.home.name; const aw = w && w.name === m.away.name;
-    return `<div class="bracket-match ${hR ? 'bracket-done' : ''}"><div class="bracket-teams">
-      <div class="bracket-team ${hw ? 'bracket-winner' : ''}">${flagMarkup(m.home,'flag flag-inline')}<span class="bracket-team-name">${m.home.name}</span>${hR ? `<span class="bracket-score">${r.home}</span>` : ''}${hw ? '<span class="bracket-adv">✅</span>' : ''}</div>
-      <div class="bracket-team ${aw ? 'bracket-winner' : ''}">${flagMarkup(m.away,'flag flag-inline')}<span class="bracket-team-name">${m.away.name}</span>${hR ? `<span class="bracket-score">${r.away}</span>` : ''}${aw ? '<span class="bracket-adv">✅</span>' : ''}</div>
-    </div></div>`;
-  };
-
-  const title = compact ? '<div class="section-title" style="margin:0;">🏆 CHAVEAMENTO</div>' : '';
-
-  return `<div class="bracket-container">
-    ${title}
-    <div class="bracket-two-sides">
-      <div class="bracket-half">
-        <div class="bracket-half-title">🏴 Chave Esquerda</div>
-        <div class="bracket-half-content">${renderBracketGrid(leftRounds, results, thirdAssignments)}</div>
-      </div>
-      <div class="bracket-center">
-        <div class="bracket-center-card"><div class="bracket-round-title">🏆 Final</div>${rCard(finalMatch)}</div>
-        <div class="bracket-center-card"><div class="bracket-round-title">🥉 3º Lugar</div>${rCard(thirdMatch)}</div>
-      </div>
-      <div class="bracket-half">
-        <div class="bracket-half-title">🏴 Chave Direita</div>
-        <div class="bracket-half-content">${renderBracketGrid(rightRounds, results, thirdAssignments, ['Semifinal', 'Quartas', 'Oitavas', '32avos'])}</div>
-      </div>
-    </div>
-  </div>`;
+  return `<div class="bracket-container">${renderBracketList(results, thirdAssignments, compact)}</div>`;
 }
 
 function renderBracketInGroups() {
@@ -1179,6 +1145,14 @@ function updateChampionFlagPreview() {
   } else {
     preview.innerHTML = '';
   }
+}
+
+function switchBracketTab(phase, btn) {
+  document.querySelectorAll('.bracket-container .bl-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.bracket-container .bl-round').forEach(r => r.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const round = document.querySelector(`.bracket-container .bl-round[data-phase="${phase}"]`);
+  if (round) round.classList.add('active');
 }
 
 function switchPhase(phase, btn, type) {
