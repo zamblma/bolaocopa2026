@@ -1467,69 +1467,76 @@
   }
 
   .bracket-half-content {
+    overflow: visible;
+  }
+
+  .bt-branch {
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
-  }
-
-  .bs-round-label {
-    font-family: 'Gasoek One', sans-serif;
-    font-size: 0.6rem;
-    color: var(--green);
-    opacity: 0.6;
-    padding: 0.2rem 0 0.1rem;
-    border-bottom: 1px dashed rgba(0,200,81,0.2);
-    margin-top: 0.2rem;
-  }
-
-  .bs-round-label:first-child {
-    margin-top: 0;
-  }
-
-  .bs-pair {
-    display: flex;
-    align-items: stretch;
-    gap: 0;
+    align-items: center;
     position: relative;
   }
 
-  .bs-feeders {
+  .bt-children {
     display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
+    width: 100%;
+    gap: 0.3rem;
+    position: relative;
+    margin-bottom: 0.4rem;
+  }
+
+  .bt-children::before {
+    content: '';
+    position: absolute;
+    bottom: -0.4rem;
+    left: 25%;
+    right: 25%;
+    height: 0;
+    border-top: 2px solid rgba(0,200,81,0.25);
+  }
+
+  .bt-child {
     flex: 1;
     min-width: 0;
     position: relative;
-    padding-right: 0.5rem;
-  }
-
-  .bs-feeders::after {
-    content: '';
-    position: absolute;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background: rgba(0,200,81,0.2);
-  }
-
-  .bs-converge {
-    flex: 0 0 auto;
-    min-width: 0;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    position: relative;
-    padding-left: 0.5rem;
   }
 
-  .bs-converge::before {
+  .bt-child::before {
     content: '';
     position: absolute;
-    left: 0;
-    top: 50%;
-    width: 0.5rem;
-    height: 2px;
-    background: rgba(0,200,81,0.2);
+    bottom: -0.4rem;
+    left: 50%;
+    width: 2px;
+    height: 0.4rem;
+    background: rgba(0,200,81,0.25);
+  }
+
+  .bt-converge {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+  }
+
+  .bt-converge::before {
+    content: '';
+    position: absolute;
+    top: -0.4rem;
+    left: 50%;
+    width: 2px;
+    height: 0.4rem;
+    background: rgba(0,200,81,0.25);
+  }
+
+  .bt-converge .bs-match {
+    border-color: rgba(0,200,81,0.2);
+    background: linear-gradient(145deg, rgba(0,200,81,0.06) 0%, rgba(20,20,20,0.95) 100%);
+  }
+
+  .bt-leaf {
+    width: 100%;
   }
 
   .bs-match {

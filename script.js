@@ -983,59 +983,47 @@ function renderGroups() {
 
 }
 
-function renderBracketSideTree(matchesById, results, thirdAssignments) {
-  const { feeders, target } = matchesById;
-  const feederHtml = feeders.map(id => {
-    const m = getResolvedMatch(ALL_MATCHES.find(x => x.id === id), results, thirdAssignments);
-    const r = results[id];
+function renderBracketTree(node, results, thirdAssignments) {
+  if (node.id) {
+    const m = getResolvedMatch(ALL_MATCHES.find(x => x.id === node.id), results, thirdAssignments);
+    const r = results[node.id];
     const hasR = r !== undefined;
-    const win = hasR ? getMatchWinner(id, results) : null;
-    const hw = win && win.name === m.home.name;
-    const aw = win && win.name === m.away.name;
-    return `<div class="bs-match ${hasR ? 'bs-done' : ''}">
-      <div class="bs-team ${hw ? 'bs-win' : ''}"><span class="bs-flag">${flagMarkup(m.home, 'flag flag-inline')}</span><span class="bs-name">${m.home.name}</span>${hasR ? `<span class="bs-score">${r.home}</span>` : ''}${hw ? '<span class="bs-adv">✅</span>' : ''}</div>
-      <div class="bs-team ${aw ? 'bs-win' : ''}"><span class="bs-flag">${flagMarkup(m.away, 'flag flag-inline')}</span><span class="bs-name">${m.away.name}</span>${hasR ? `<span class="bs-score">${r.away}</span>` : ''}${aw ? '<span class="bs-adv">✅</span>' : ''}</div>
+    const w = hasR ? getMatchWinner(node.id, results) : null;
+    const hw = w && w.name === m.home.name;
+    const aw = w && w.name === m.away.name;
+    return `<div class="bt-leaf bs-match ${hasR ? 'bs-done' : ''}">
+      <div class="bs-team ${hw ? 'bs-win' : ''}"><span class="bs-flag">${flagMarkup(m.home,'flag flag-inline')}</span><span class="bs-name">${m.home.name}</span>${hasR ? `<span class="bs-score">${r.home}</span>` : ''}${hw ? '<span class="bs-adv">✅</span>' : ''}</div>
+      <div class="bs-team ${aw ? 'bs-win' : ''}"><span class="bs-flag">${flagMarkup(m.away,'flag flag-inline')}</span><span class="bs-name">${m.away.name}</span>${hasR ? `<span class="bs-score">${r.away}</span>` : ''}${aw ? '<span class="bs-adv">✅</span>' : ''}</div>
     </div>`;
-  }).join('');
-  const t = getResolvedMatch(ALL_MATCHES.find(x => x.id === target), results, thirdAssignments);
-  const tr = results[target];
-  const tHas = tr !== undefined;
-  const tw = tHas ? getMatchWinner(target, results) : null;
-  const thw = tw && tw.name === t.home.name;
-  const taw = tw && tw.name === t.away.name;
-  const targetHtml = `<div class="bs-match bs-target ${tHas ? 'bs-done' : ''}">
-    <div class="bs-team ${thw ? 'bs-win' : ''}"><span class="bs-flag">${flagMarkup(t.home, 'flag flag-inline')}</span><span class="bs-name">${t.home.name}</span>${tHas ? `<span class="bs-score">${tr.home}</span>` : ''}${thw ? '<span class="bs-adv">✅</span>' : ''}</div>
-    <div class="bs-team ${taw ? 'bs-win' : ''}"><span class="bs-flag">${flagMarkup(t.away, 'flag flag-inline')}</span><span class="bs-name">${t.away.name}</span>${tHas ? `<span class="bs-score">${tr.away}</span>` : ''}${taw ? '<span class="bs-adv">✅</span>' : ''}</div>
-  </div>`;
-  return `<div class="bs-pair"><div class="bs-feeders">${feederHtml}</div><div class="bs-converge">${targetHtml}</div></div>`;
+  }
+  const left = renderBracketTree(node.left, results, thirdAssignments);
+  const right = renderBracketTree(node.right, results, thirdAssignments);
+  const converge = node.converge ? (() => {
+    const m = getResolvedMatch(ALL_MATCHES.find(x => x.id === node.converge), results, thirdAssignments);
+    const r = results[node.converge];
+    const hasR = r !== undefined;
+    const w = hasR ? getMatchWinner(node.converge, results) : null;
+    const hw = w && w.name === m.home.name;
+    const aw = w && w.name === m.away.name;
+    return `<div class="bt-converge bs-match bs-target ${hasR ? 'bs-done' : ''}">
+      <div class="bs-team ${hw ? 'bs-win' : ''}"><span class="bs-flag">${flagMarkup(m.home,'flag flag-inline')}</span><span class="bs-name">${m.home.name}</span>${hasR ? `<span class="bs-score">${r.home}</span>` : ''}${hw ? '<span class="bs-adv">✅</span>' : ''}</div>
+      <div class="bs-team ${aw ? 'bs-win' : ''}"><span class="bs-flag">${flagMarkup(m.away,'flag flag-inline')}</span><span class="bs-name">${m.away.name}</span>${hasR ? `<span class="bs-score">${r.away}</span>` : ''}${aw ? '<span class="bs-adv">✅</span>' : ''}</div>
+    </div>`;
+  })() : '';
+  return `<div class="bt-branch"><div class="bt-children"><div class="bt-child">${left}</div><div class="bt-child">${right}</div></div>${converge}</div>`;
 }
 
 function renderFullBracket(results, thirdAssignments, compact = false) {
-  const leftPairs = [
-    { feeders: [73, 75], target: 90 }, { feeders: [74, 77], target: 89 },
-    { feeders: [76, 78], target: 91 }, { feeders: [79, 80], target: 92 },
-  ];
-  const leftOitavas = [
-    { feeders: [90, 89], target: 97 }, { feeders: [91, 92], target: 98 },
-  ];
-  const leftQuartas = [
-    { feeders: [97, 98], target: 101 },
-  ];
-  const rightPairs = [
-    { feeders: [81, 82], target: 94 }, { feeders: [83, 84], target: 93 },
-    { feeders: [86, 88], target: 95 }, { feeders: [85, 87], target: 96 },
-  ];
-  const rightOitavas = [
-    { feeders: [94, 93], target: 99 }, { feeders: [95, 96], target: 100 },
-  ];
-  const rightQuartas = [
-    { feeders: [99, 100], target: 102 },
-  ];
-
-  const renderGroup = (pairs) => pairs.map(p => renderBracketSideTree(p, results, thirdAssignments)).join('');
-
-  const leftHtml = `<div class="bs-round-label">32 avos</div>${renderGroup(leftPairs)}<div class="bs-round-label">Oitavas</div>${renderGroup(leftOitavas)}<div class="bs-round-label">Quartas · Semifinal</div>${renderGroup(leftQuartas)}`;
-  const rightHtml = `<div class="bs-round-label">32 avos</div>${renderGroup(rightPairs)}<div class="bs-round-label">Oitavas</div>${renderGroup(rightOitavas)}<div class="bs-round-label">Quartas · Semifinal</div>${renderGroup(rightQuartas)}`;
+  const leftTree = {
+    converge: 101,
+    left: { converge: 97, left: { converge: 90, left: {id:73}, right: {id:75} }, right: { converge: 89, left: {id:74}, right: {id:77} } },
+    right: { converge: 98, left: { converge: 91, left: {id:76}, right: {id:78} }, right: { converge: 92, left: {id:79}, right: {id:80} } }
+  };
+  const rightTree = {
+    converge: 102,
+    left: { converge: 99, left: { converge: 94, left: {id:81}, right: {id:82} }, right: { converge: 93, left: {id:83}, right: {id:84} } },
+    right: { converge: 100, left: { converge: 95, left: {id:86}, right: {id:88} }, right: { converge: 96, left: {id:85}, right: {id:87} } }
+  };
 
   const finalMatch = getResolvedMatch(ALL_MATCHES.find(m => m.id === 104), results, thirdAssignments);
   const thirdMatch = getResolvedMatch(ALL_MATCHES.find(m => m.id === 103), results, thirdAssignments);
@@ -1057,7 +1045,7 @@ function renderFullBracket(results, thirdAssignments, compact = false) {
     <div class="bracket-two-sides">
       <div class="bracket-half">
         <div class="bracket-half-title">🏴 Chave Esquerda</div>
-        <div class="bracket-half-content">${leftHtml}</div>
+        <div class="bracket-half-content">${renderBracketTree(leftTree, results, thirdAssignments)}</div>
       </div>
       <div class="bracket-center">
         <div class="bracket-center-card"><div class="bracket-round-title">🏆 Final</div>${rCard(finalMatch)}</div>
@@ -1065,7 +1053,7 @@ function renderFullBracket(results, thirdAssignments, compact = false) {
       </div>
       <div class="bracket-half">
         <div class="bracket-half-title">🏴 Chave Direita</div>
-        <div class="bracket-half-content">${rightHtml}</div>
+        <div class="bracket-half-content">${renderBracketTree(rightTree, results, thirdAssignments)}</div>
       </div>
     </div>
   </div>`;
