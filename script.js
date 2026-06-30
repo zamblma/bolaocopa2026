@@ -983,118 +983,91 @@ function renderGroups() {
 
 }
 
-function renderBracketTree(matchesByRound, results) {
-  const rounds = matchesByRound.length;
-  if (rounds === 0) return '';
-  const totalRows = Math.pow(2, rounds) - 1;
-  let html = '';
-  matchesByRound.forEach((matches, r) => {
-    html += matches.map((m, mi) => {
-      const row = Math.pow(2, r) * (2 * mi + 1) - 1;
-      const r2 = results[m.id];
-      const hasR = r2 !== undefined;
-      const isPending = m.home.isPlaceholder || m.away.isPlaceholder;
-      const winner = hasR ? getMatchWinner(m.id, results) : null;
-      const homeWin = winner && winner.name === m.home.name;
-      const awayWin = winner && winner.name === m.away.name;
-      const roundLabels = ['32 avos','Oitavas','Quartas','Semifinal'];
-      return `<div class="bm" style="grid-column:${r+1};grid-row:${row+1};">
-        ${r > 0 ? `<div class="bm-connector-left"></div>` : ''}
-        <div class="bracket-match ${hasR ? 'bracket-done' : ''} ${isPending ? 'bm-pend' : ''}">
-          <div class="bm-round-badge">${roundLabels[r]||''}</div>
-          <div class="bracket-teams">
-            <div class="bracket-team ${homeWin ? 'bracket-winner' : ''}">
-              ${flagMarkup(m.home, 'flag flag-inline')}
-              <span class="bracket-team-name">${m.home.name}</span>
-              ${hasR ? `<span class="bracket-score">${r2.home}</span>` : ''}
-              ${homeWin ? '<span class="bracket-adv">✅</span>' : ''}
-            </div>
-            <div class="bracket-team ${awayWin ? 'bracket-winner' : ''}">
-              ${flagMarkup(m.away, 'flag flag-inline')}
-              <span class="bracket-team-name">${m.away.name}</span>
-              ${hasR ? `<span class="bracket-score">${r2.away}</span>` : ''}
-              ${awayWin ? '<span class="bracket-adv">✅</span>' : ''}
-            </div>
-          </div>
-          ${isPending ? '<div class="bracket-pending">⏳ A definir</div>' : ''}
-        </div>
-        ${r < rounds - 1 ? `<div class="bm-connector-right"></div>` : ''}
-      </div>`;
-    }).join('');
-  });
-  return `<div class="bracket-tree" style="grid-template-rows:repeat(${totalRows},1fr)">${html}</div>`;
+function renderBracketSideTree(matchesById, results, thirdAssignments) {
+  const { feeders, target } = matchesById;
+  const feederHtml = feeders.map(id => {
+    const m = getResolvedMatch(ALL_MATCHES.find(x => x.id === id), results, thirdAssignments);
+    const r = results[id];
+    const hasR = r !== undefined;
+    const win = hasR ? getMatchWinner(id, results) : null;
+    const hw = win && win.name === m.home.name;
+    const aw = win && win.name === m.away.name;
+    return `<div class="bs-match ${hasR ? 'bs-done' : ''}">
+      <div class="bs-team ${hw ? 'bs-win' : ''}"><span class="bs-flag">${flagMarkup(m.home, 'flag flag-inline')}</span><span class="bs-name">${m.home.name}</span>${hasR ? `<span class="bs-score">${r.home}</span>` : ''}${hw ? '<span class="bs-adv">✅</span>' : ''}</div>
+      <div class="bs-team ${aw ? 'bs-win' : ''}"><span class="bs-flag">${flagMarkup(m.away, 'flag flag-inline')}</span><span class="bs-name">${m.away.name}</span>${hasR ? `<span class="bs-score">${r.away}</span>` : ''}${aw ? '<span class="bs-adv">✅</span>' : ''}</div>
+    </div>`;
+  }).join('');
+  const t = getResolvedMatch(ALL_MATCHES.find(x => x.id === target), results, thirdAssignments);
+  const tr = results[target];
+  const tHas = tr !== undefined;
+  const tw = tHas ? getMatchWinner(target, results) : null;
+  const thw = tw && tw.name === t.home.name;
+  const taw = tw && tw.name === t.away.name;
+  const targetHtml = `<div class="bs-match bs-target ${tHas ? 'bs-done' : ''}">
+    <div class="bs-team ${thw ? 'bs-win' : ''}"><span class="bs-flag">${flagMarkup(t.home, 'flag flag-inline')}</span><span class="bs-name">${t.home.name}</span>${tHas ? `<span class="bs-score">${tr.home}</span>` : ''}${thw ? '<span class="bs-adv">✅</span>' : ''}</div>
+    <div class="bs-team ${taw ? 'bs-win' : ''}"><span class="bs-flag">${flagMarkup(t.away, 'flag flag-inline')}</span><span class="bs-name">${t.away.name}</span>${tHas ? `<span class="bs-score">${tr.away}</span>` : ''}${taw ? '<span class="bs-adv">✅</span>' : ''}</div>
+  </div>`;
+  return `<div class="bs-pair"><div class="bs-feeders">${feederHtml}</div><div class="bs-converge">${targetHtml}</div></div>`;
 }
 
 function renderFullBracket(results, thirdAssignments, compact = false) {
-  const leftMatches = [
-    [73, 75, 74, 77, 76, 78, 79, 80].map(id => getResolvedMatch(ALL_MATCHES.find(m => m.id === id), results, thirdAssignments)),
-    [90, 89, 91, 92].map(id => getResolvedMatch(ALL_MATCHES.find(m => m.id === id), results, thirdAssignments)),
-    [97, 98].map(id => getResolvedMatch(ALL_MATCHES.find(m => m.id === id), results, thirdAssignments)),
-    [101].map(id => getResolvedMatch(ALL_MATCHES.find(m => m.id === id), results, thirdAssignments)),
+  const leftPairs = [
+    { feeders: [73, 75], target: 90 }, { feeders: [74, 77], target: 89 },
+    { feeders: [76, 78], target: 91 }, { feeders: [79, 80], target: 92 },
   ];
-  const rightMatches = [
-    [81, 82, 83, 84, 86, 88, 85, 87].map(id => getResolvedMatch(ALL_MATCHES.find(m => m.id === id), results, thirdAssignments)),
-    [94, 93, 95, 96].map(id => getResolvedMatch(ALL_MATCHES.find(m => m.id === id), results, thirdAssignments)),
-    [99, 100].map(id => getResolvedMatch(ALL_MATCHES.find(m => m.id === id), results, thirdAssignments)),
-    [102].map(id => getResolvedMatch(ALL_MATCHES.find(m => m.id === id), results, thirdAssignments)),
+  const leftOitavas = [
+    { feeders: [90, 89], target: 97 }, { feeders: [91, 92], target: 98 },
   ];
+  const leftQuartas = [
+    { feeders: [97, 98], target: 101 },
+  ];
+  const rightPairs = [
+    { feeders: [81, 82], target: 94 }, { feeders: [83, 84], target: 93 },
+    { feeders: [86, 88], target: 95 }, { feeders: [85, 87], target: 96 },
+  ];
+  const rightOitavas = [
+    { feeders: [94, 93], target: 99 }, { feeders: [95, 96], target: 100 },
+  ];
+  const rightQuartas = [
+    { feeders: [99, 100], target: 102 },
+  ];
+
+  const renderGroup = (pairs) => pairs.map(p => renderBracketSideTree(p, results, thirdAssignments)).join('');
+
+  const leftHtml = `<div class="bs-round-label">32 avos</div>${renderGroup(leftPairs)}<div class="bs-round-label">Oitavas</div>${renderGroup(leftOitavas)}<div class="bs-round-label">Quartas · Semifinal</div>${renderGroup(leftQuartas)}`;
+  const rightHtml = `<div class="bs-round-label">32 avos</div>${renderGroup(rightPairs)}<div class="bs-round-label">Oitavas</div>${renderGroup(rightOitavas)}<div class="bs-round-label">Quartas · Semifinal</div>${renderGroup(rightQuartas)}`;
+
   const finalMatch = getResolvedMatch(ALL_MATCHES.find(m => m.id === 104), results, thirdAssignments);
   const thirdMatch = getResolvedMatch(ALL_MATCHES.find(m => m.id === 103), results, thirdAssignments);
 
-  const title = compact
-    ? '<div class="section-title" style="margin:0;">🏆 CHAVEAMENTO</div>'
-    : '';
+  const rCard = (m) => {
+    const r = results[m.id]; const hR = r !== undefined;
+    const w = hR ? getMatchWinner(m.id, results) : null;
+    const hw = w && w.name === m.home.name; const aw = w && w.name === m.away.name;
+    return `<div class="bracket-match ${hR ? 'bracket-done' : ''}"><div class="bracket-teams">
+      <div class="bracket-team ${hw ? 'bracket-winner' : ''}">${flagMarkup(m.home,'flag flag-inline')}<span class="bracket-team-name">${m.home.name}</span>${hR ? `<span class="bracket-score">${r.home}</span>` : ''}${hw ? '<span class="bracket-adv">✅</span>' : ''}</div>
+      <div class="bracket-team ${aw ? 'bracket-winner' : ''}">${flagMarkup(m.away,'flag flag-inline')}<span class="bracket-team-name">${m.away.name}</span>${hR ? `<span class="bracket-score">${r.away}</span>` : ''}${aw ? '<span class="bracket-adv">✅</span>' : ''}</div>
+    </div></div>`;
+  };
+
+  const title = compact ? '<div class="section-title" style="margin:0;">🏆 CHAVEAMENTO</div>' : '';
 
   return `<div class="bracket-container">
     ${title}
     <div class="bracket-two-sides">
       <div class="bracket-half">
-        <div class="bracket-half-title">Chave Esquerda</div>
-        <div class="bracket-half-sub">(caminho para Semifinal 1)</div>
-        ${renderBracketTree(leftMatches, results)}
+        <div class="bracket-half-title">🏴 Chave Esquerda</div>
+        <div class="bracket-half-content">${leftHtml}</div>
       </div>
       <div class="bracket-center">
-        <div class="bracket-final-card">
-          <div class="bracket-round-title">Final</div>
-          ${renderMatchCard(finalMatch, results)}
-        </div>
-        <div class="bracket-third-card">
-          <div class="bracket-round-title">3º Lugar</div>
-          ${renderMatchCard(thirdMatch, results)}
-        </div>
+        <div class="bracket-center-card"><div class="bracket-round-title">🏆 Final</div>${rCard(finalMatch)}</div>
+        <div class="bracket-center-card"><div class="bracket-round-title">🥉 3º Lugar</div>${rCard(thirdMatch)}</div>
       </div>
       <div class="bracket-half">
-        <div class="bracket-half-title">Chave Direita</div>
-        <div class="bracket-half-sub">(caminho para Semifinal 2)</div>
-        ${renderBracketTree(rightMatches, results)}
+        <div class="bracket-half-title">🏴 Chave Direita</div>
+        <div class="bracket-half-content">${rightHtml}</div>
       </div>
     </div>
-  </div>`;
-}
-
-function renderMatchCard(m, results) {
-  const r = results[m.id];
-  const hasR = r !== undefined;
-  const isPending = m.home.isPlaceholder || m.away.isPlaceholder;
-  const winner = hasR ? getMatchWinner(m.id, results) : null;
-  const homeWin = winner && winner.name === m.home.name;
-  const awayWin = winner && winner.name === m.away.name;
-  return `<div class="bracket-match ${hasR ? 'bracket-done' : ''} ${isPending ? 'bm-pend' : ''}">
-    <div class="bracket-teams">
-      <div class="bracket-team ${homeWin ? 'bracket-winner' : ''}">
-        ${flagMarkup(m.home, 'flag flag-inline')}
-        <span class="bracket-team-name">${m.home.name}</span>
-        ${hasR ? `<span class="bracket-score">${r.home}</span>` : ''}
-        ${homeWin ? '<span class="bracket-adv">✅</span>' : ''}
-      </div>
-      <div class="bracket-team ${awayWin ? 'bracket-winner' : ''}">
-        ${flagMarkup(m.away, 'flag flag-inline')}
-        <span class="bracket-team-name">${m.away.name}</span>
-        ${hasR ? `<span class="bracket-score">${r.away}</span>` : ''}
-        ${awayWin ? '<span class="bracket-adv">✅</span>' : ''}
-      </div>
-    </div>
-    ${isPending ? '<div class="bracket-pending">⏳ A definir</div>' : ''}
   </div>`;
 }
 
