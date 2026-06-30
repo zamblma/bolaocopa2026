@@ -983,49 +983,125 @@ function renderGroups() {
 
 }
 
+function renderBracketTree(matchesByRound, results) {
+  const rounds = matchesByRound.length;
+  if (rounds === 0) return '';
+  const totalRows = Math.pow(2, rounds) - 1;
+  let html = '';
+  matchesByRound.forEach((matches, r) => {
+    html += matches.map((m, mi) => {
+      const row = Math.pow(2, r) * (2 * mi + 1) - 1;
+      const r2 = results[m.id];
+      const hasR = r2 !== undefined;
+      const isPending = m.home.isPlaceholder || m.away.isPlaceholder;
+      const winner = hasR ? getMatchWinner(m.id, results) : null;
+      const homeWin = winner && winner.name === m.home.name;
+      const awayWin = winner && winner.name === m.away.name;
+      const roundLabels = ['32 avos','Oitavas','Quartas','Semifinal'];
+      return `<div class="bm" style="grid-column:${r+1};grid-row:${row+1};">
+        ${r > 0 ? `<div class="bm-connector-left"></div>` : ''}
+        <div class="bracket-match ${hasR ? 'bracket-done' : ''} ${isPending ? 'bm-pend' : ''}">
+          <div class="bm-round-badge">${roundLabels[r]||''}</div>
+          <div class="bracket-teams">
+            <div class="bracket-team ${homeWin ? 'bracket-winner' : ''}">
+              ${flagMarkup(m.home, 'flag flag-inline')}
+              <span class="bracket-team-name">${m.home.name}</span>
+              ${hasR ? `<span class="bracket-score">${r2.home}</span>` : ''}
+              ${homeWin ? '<span class="bracket-adv">✅</span>' : ''}
+            </div>
+            <div class="bracket-team ${awayWin ? 'bracket-winner' : ''}">
+              ${flagMarkup(m.away, 'flag flag-inline')}
+              <span class="bracket-team-name">${m.away.name}</span>
+              ${hasR ? `<span class="bracket-score">${r2.away}</span>` : ''}
+              ${awayWin ? '<span class="bracket-adv">✅</span>' : ''}
+            </div>
+          </div>
+          ${isPending ? '<div class="bracket-pending">⏳ A definir</div>' : ''}
+        </div>
+        ${r < rounds - 1 ? `<div class="bm-connector-right"></div>` : ''}
+      </div>`;
+    }).join('');
+  });
+  return `<div class="bracket-tree" style="grid-template-rows:repeat(${totalRows},1fr)">${html}</div>`;
+}
+
+function renderFullBracket(results, thirdAssignments, compact = false) {
+  const leftMatches = [
+    [73, 75, 74, 77, 76, 78, 79, 80].map(id => getResolvedMatch(ALL_MATCHES.find(m => m.id === id), results, thirdAssignments)),
+    [90, 89, 91, 92].map(id => getResolvedMatch(ALL_MATCHES.find(m => m.id === id), results, thirdAssignments)),
+    [97, 98].map(id => getResolvedMatch(ALL_MATCHES.find(m => m.id === id), results, thirdAssignments)),
+    [101].map(id => getResolvedMatch(ALL_MATCHES.find(m => m.id === id), results, thirdAssignments)),
+  ];
+  const rightMatches = [
+    [81, 82, 83, 84, 86, 88, 85, 87].map(id => getResolvedMatch(ALL_MATCHES.find(m => m.id === id), results, thirdAssignments)),
+    [94, 93, 95, 96].map(id => getResolvedMatch(ALL_MATCHES.find(m => m.id === id), results, thirdAssignments)),
+    [99, 100].map(id => getResolvedMatch(ALL_MATCHES.find(m => m.id === id), results, thirdAssignments)),
+    [102].map(id => getResolvedMatch(ALL_MATCHES.find(m => m.id === id), results, thirdAssignments)),
+  ];
+  const finalMatch = getResolvedMatch(ALL_MATCHES.find(m => m.id === 104), results, thirdAssignments);
+  const thirdMatch = getResolvedMatch(ALL_MATCHES.find(m => m.id === 103), results, thirdAssignments);
+
+  const title = compact
+    ? '<div class="section-title" style="margin:0;">🏆 CHAVEAMENTO</div>'
+    : '';
+
+  return `<div class="bracket-container">
+    ${title}
+    <div class="bracket-two-sides">
+      <div class="bracket-half">
+        <div class="bracket-half-title">Chave Esquerda</div>
+        <div class="bracket-half-sub">(caminho para Semifinal 1)</div>
+        ${renderBracketTree(leftMatches, results)}
+      </div>
+      <div class="bracket-center">
+        <div class="bracket-final-card">
+          <div class="bracket-round-title">Final</div>
+          ${renderMatchCard(finalMatch, results)}
+        </div>
+        <div class="bracket-third-card">
+          <div class="bracket-round-title">3º Lugar</div>
+          ${renderMatchCard(thirdMatch, results)}
+        </div>
+      </div>
+      <div class="bracket-half">
+        <div class="bracket-half-title">Chave Direita</div>
+        <div class="bracket-half-sub">(caminho para Semifinal 2)</div>
+        ${renderBracketTree(rightMatches, results)}
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderMatchCard(m, results) {
+  const r = results[m.id];
+  const hasR = r !== undefined;
+  const isPending = m.home.isPlaceholder || m.away.isPlaceholder;
+  const winner = hasR ? getMatchWinner(m.id, results) : null;
+  const homeWin = winner && winner.name === m.home.name;
+  const awayWin = winner && winner.name === m.away.name;
+  return `<div class="bracket-match ${hasR ? 'bracket-done' : ''} ${isPending ? 'bm-pend' : ''}">
+    <div class="bracket-teams">
+      <div class="bracket-team ${homeWin ? 'bracket-winner' : ''}">
+        ${flagMarkup(m.home, 'flag flag-inline')}
+        <span class="bracket-team-name">${m.home.name}</span>
+        ${hasR ? `<span class="bracket-score">${r.home}</span>` : ''}
+        ${homeWin ? '<span class="bracket-adv">✅</span>' : ''}
+      </div>
+      <div class="bracket-team ${awayWin ? 'bracket-winner' : ''}">
+        ${flagMarkup(m.away, 'flag flag-inline')}
+        <span class="bracket-team-name">${m.away.name}</span>
+        ${hasR ? `<span class="bracket-score">${r.away}</span>` : ''}
+        ${awayWin ? '<span class="bracket-adv">✅</span>' : ''}
+      </div>
+    </div>
+    ${isPending ? '<div class="bracket-pending">⏳ A definir</div>' : ''}
+  </div>`;
+}
+
 function renderBracketInGroups() {
   const results = getData('bolao_results', {});
   const thirdAssignments = getThirdTeamAssignments(results);
-  const KO_PHASES = ['32avos','Oitavas','Quartas','Semis','Terceiro','Final'];
-  const PHASE_LABELS = { '32avos':'16 avos','Oitavas':'Oitavas','Quartas':'Quartas','Semis':'Semis','Terceiro':'3º Lugar','Final':'Final' };
-
-  return `<div class="bracket-in-groups">
-    <div class="section-title" style="margin:0;">🏆 CHAVEAMENTO</div>
-    <div class="bracket-grid">` +
-    KO_PHASES.map(phase => {
-      const matches = ALL_MATCHES
-        .filter(m => m.phase === phase)
-        .map(m => getResolvedMatch(m, results, thirdAssignments));
-      return `<div class="bracket-round">
-        <div class="bracket-round-title">${PHASE_LABELS[phase]}</div>
-        ${matches.map(m => {
-          const r = results[m.id];
-          const hasR = r !== undefined;
-          const isPending = m.home.isPlaceholder || m.away.isPlaceholder;
-          const winner = hasR ? getMatchWinner(m.id, results) : null;
-          const homeWin = winner && winner.name === m.home.name;
-          const awayWin = winner && winner.name === m.away.name;
-          return `<div class="bracket-match ${hasR ? 'bracket-done' : ''}">
-            <div class="bracket-teams">
-              <div class="bracket-team ${homeWin ? 'bracket-winner' : ''}">
-                ${flagMarkup(m.home, 'flag flag-inline')}
-                <span class="bracket-team-name">${m.home.name}</span>
-                ${hasR ? `<span class="bracket-score">${r.home}</span>` : ''}
-                ${homeWin ? '<span class="bracket-adv">✅</span>' : ''}
-              </div>
-              <div class="bracket-team ${awayWin ? 'bracket-winner' : ''}">
-                ${flagMarkup(m.away, 'flag flag-inline')}
-                <span class="bracket-team-name">${m.away.name}</span>
-                ${hasR ? `<span class="bracket-score">${r.away}</span>` : ''}
-                ${awayWin ? '<span class="bracket-adv">✅</span>' : ''}
-              </div>
-            </div>
-            ${isPending ? '<div class="bracket-pending">⏳ A definir</div>' : ''}
-          </div>`;
-        }).join('')}
-      </div>`;
-    }).join('') +
-  `</div></div>`;
+  return renderFullBracket(results, thirdAssignments, true);
 }
 
 function renderPhaseTabs() {
@@ -1943,44 +2019,7 @@ function renderBracket() {
   const results = getData('bolao_results', {});
   const thirdAssignments = getThirdTeamAssignments(results);
   const container = document.getElementById('bracketContainer');
-  const KO_PHASES = ['32avos','Oitavas','Quartas','Semis','Terceiro','Final'];
-  const PHASE_LABELS = { '32avos':'32avos','Oitavas':'Oitavas','Quartas':'Quartas','Semis':'Semis','Terceiro':'3º Lugar','Final':'Final' };
-
-  container.innerHTML = `<div class="bracket-grid">` +
-    KO_PHASES.map(phase => {
-      const matches = ALL_MATCHES
-        .filter(m => m.phase === phase)
-        .map(m => getResolvedMatch(m, results, thirdAssignments));
-      return `<div class="bracket-round">
-        <div class="bracket-round-title">${PHASE_LABELS[phase]}</div>
-        ${matches.map(m => {
-          const r = results[m.id];
-          const hasR = r !== undefined;
-          const isPending = m.home.isPlaceholder || m.away.isPlaceholder;
-          const winner = hasR ? getMatchWinner(m.id, results) : null;
-          const homeWin = winner && winner.name === m.home.name;
-          const awayWin = winner && winner.name === m.away.name;
-          return `<div class="bracket-match ${hasR ? 'bracket-done' : ''}">
-            <div class="bracket-teams">
-              <div class="bracket-team ${homeWin ? 'bracket-winner' : ''}">
-                ${flagMarkup(m.home, 'flag flag-inline')}
-                <span class="bracket-team-name">${m.home.name}</span>
-                ${hasR ? `<span class="bracket-score">${r.home}</span>` : ''}
-                ${homeWin ? '<span class="bracket-adv">✅</span>' : ''}
-              </div>
-              <div class="bracket-team ${awayWin ? 'bracket-winner' : ''}">
-                ${flagMarkup(m.away, 'flag flag-inline')}
-                <span class="bracket-team-name">${m.away.name}</span>
-                ${hasR ? `<span class="bracket-score">${r.away}</span>` : ''}
-                ${awayWin ? '<span class="bracket-adv">✅</span>' : ''}
-              </div>
-            </div>
-            ${isPending ? '<div class="bracket-pending">⏳ A definir</div>' : ''}
-          </div>`;
-        }).join('')}
-      </div>`;
-    }).join('') +
-  `</div>`;
+  container.innerHTML = renderFullBracket(results, thirdAssignments, false);
 }
 
 // ============================================================
