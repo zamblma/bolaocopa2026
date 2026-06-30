@@ -257,25 +257,55 @@ function getThirdTeamAssignments(results) {
   const thirds = getThirdPlacedTeams(results);
   if (thirds.length < 8) return {};
 
-  // Chaveamento predeterminado da FIFA 2026
-  const fixedMap = {
-    '3ABCDF': 'D','3CDFGH': 'F','3CEFHI': 'E','3EHIJK': 'K',
-    '3BEFIJ': 'B','3AEHIJ': 'I','3EFGIJ': 'J','3DEIJL': 'L'
+  const advancing = new Set(thirds.map(t => t.group));
+  const advancingKey = [...advancing].sort().join('');
+
+  // Slots: (matchId, ref, allowed groups from slot name)
+  const slotDefs = [
+    { matchId: 79, ref: '3CEFHI', allowed: ['C','E','F','H','I'] },
+    { matchId: 85, ref: '3EFGIJ', allowed: ['E','F','G','I','J'] },
+    { matchId: 81, ref: '3BEFIJ', allowed: ['B','E','F','I','J'] },
+    { matchId: 74, ref: '3ABCDF', allowed: ['A','B','C','D','F'] },
+    { matchId: 82, ref: '3AEHIJ', allowed: ['A','E','H','I','J'] },
+    { matchId: 77, ref: '3CDFGH', allowed: ['C','D','F','G','H'] },
+    { matchId: 87, ref: '3DEIJL', allowed: ['D','E','I','J','L'] },
+    { matchId: 80, ref: '3EHIJK', allowed: ['E','H','I','J','K'] },
+  ];
+
+  // Conjunto fixo conhecido: B,D,E,F,I,J,K,L → mapeamento oficial FIFA
+  const knownMap = {
+    'BDEFIJKL': { 79:'E', 85:'J', 81:'B', 74:'D', 82:'I', 77:'F', 87:'L', 80:'K' },
   };
-  const thirdByGroup = Object.fromEntries(thirds.map(team => [team.group, team]));
-  const out = {};
-  for (const [ref, group] of Object.entries(fixedMap)) {
-    if (thirdByGroup[group]) out[thirdByGroup[group].matchRef || ref] = group;
-  }
-  // Mapeia cada partida de 32avos que tem ref 3xyz
-  const assignments = {};
-  ALL_MATCHES.filter(m => m.phase === '32avos').forEach(m => {
-    const ref = (m.homeRef?.startsWith('3') ? m.homeRef : m.awayRef?.startsWith('3') ? m.awayRef : null);
-    if (ref && fixedMap[ref] && thirdByGroup[fixedMap[ref]]) {
-      assignments[m.id] = fixedMap[ref];
+
+  if (knownMap[advancingKey]) {
+    const assignments = {};
+    for (const sd of slotDefs) {
+      const group = knownMap[advancingKey][sd.matchId];
+      if (group) assignments[sd.matchId] = group;
     }
-  });
-  return assignments;
+    return assignments;
+  }
+
+  // Backtracking para combinacoes desconhecidas
+  const used = new Set();
+  const assignment = {};
+
+  function solve(idx) {
+    if (idx === slotDefs.length) return true;
+    const sd = slotDefs[idx];
+    const valid = sd.allowed.filter(g => advancing.has(g) && !used.has(g));
+    for (const group of valid) {
+      used.add(group);
+      assignment[sd.matchId] = group;
+      if (solve(idx + 1)) return true;
+      used.delete(group);
+      delete assignment[sd.matchId];
+    }
+    return false;
+  }
+
+  if (!solve(0)) return {};
+  return assignment;
 }
 
 function getMatchById(matchId) {
