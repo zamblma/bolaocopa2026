@@ -1440,94 +1440,172 @@
     width: 100%;
   }
 
-  .bl-tabs {
+  .bracket-two-sides {
     display: flex;
-    gap: 0.3rem;
-    margin-bottom: 0.5rem;
-    overflow-x: auto;
-    padding: 0.2rem 0;
+    gap: 0.5rem;
+    align-items: flex-start;
   }
 
-  .bl-tab {
-    flex-shrink: 0;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 8px;
-    padding: 0.35rem 0.7rem;
-    font-family: 'Gasoek One', sans-serif;
-    font-size: 0.7rem;
-    color: var(--silver);
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .bl-tab:hover { border-color: rgba(0,200,81,0.3); color: var(--white); }
-  .bl-tab.active { background: rgba(0,200,81,0.12); border-color: var(--green); color: var(--green); }
-
-  .bl-compact-header {
-    margin-bottom: 0.3rem;
-  }
-
-  .bl-phase-label {
-    font-family: 'Gasoek One', sans-serif;
-    font-size: 0.65rem;
-    color: var(--green);
-  }
-
-  .bl-round { display: none; }
-  .bl-round.active { display: flex; flex-direction: column; gap: 0.2rem; }
-
-  .bl-match {
-    background: rgba(255,255,255,0.03);
+  .bracket-half {
+    flex: 1;
+    min-width: 0;
+    background: rgba(255,255,255,0.02);
     border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 8px;
-    padding: 0.3rem 0.5rem;
-    display: grid;
-    grid-template-columns: 1fr 1fr auto;
-    grid-template-rows: auto auto;
-    gap: 0.1rem 0.5rem;
-    align-items: center;
+    border-radius: 12px;
+    padding: 0.5rem;
   }
 
-  .bl-match:nth-child(odd) { background: rgba(255,255,255,0.015); }
-
-  .bl-done { border-color: rgba(0,200,81,0.12); }
-
-  .bl-team {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    font-size: 0.65rem;
-    font-weight: 600;
-    color: var(--silver);
-    line-height: 1.3;
-  }
-
-  .bl-team .bl-flag { flex-shrink: 0; }
-  .bl-team .bl-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-  .bl-win { color: var(--white); font-weight: 700; }
-
-  .bl-score {
+  .bracket-half-title {
     font-family: 'Gasoek One', sans-serif;
     font-size: 0.8rem;
     color: var(--green);
+    text-align: center;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid var(--gray-light);
+    margin-bottom: 0.4rem;
+    text-shadow: 0 0 8px rgba(0,200,81,0.3);
+  }
+
+  .bracket-half-content {
+    overflow-x: auto;
+  }
+
+  .bg-round-labels {
+    display: flex;
+    gap: 0.12rem;
+    margin-bottom: 0.15rem;
+  }
+
+  .bg-round-label {
+    flex: 1;
+    text-align: center;
+    font-size: 0.5rem;
+    font-weight: 700;
+    color: var(--green);
+    text-transform: uppercase;
+    letter-spacing: 0.03rem;
+  }
+
+  .bg-grid {
+    display: grid;
+    min-width: 0;
+    position: relative;
+  }
+
+  .bg-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .bg-match {
+    width: calc(100% - 0.08rem);
+    background: linear-gradient(145deg, rgba(26,26,26,0.95) 0%, rgba(20,20,20,0.98) 100%);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 4px;
+    padding: 0.08rem 0.2rem;
+    margin: 0.04rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .bg-match:hover {
+    border-color: rgba(0,200,81,0.4);
+  }
+
+  .bg-done { border-color: rgba(0,200,81,0.2); box-shadow: 0 0 3px rgba(0,200,81,0.05); }
+
+  .bg-team {
+    display: flex;
+    align-items: center;
+    gap: 0.12rem;
+    font-size: 0.5rem;
+    font-weight: 600;
+    color: var(--silver);
+    line-height: 1.15;
+  }
+
+  .bg-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .bg-win { color: var(--white); font-weight: 700; }
+
+  .bg-score {
+    font-family: 'Gasoek One', sans-serif;
+    font-size: 0.6rem;
+    color: var(--green);
     margin-left: auto;
     flex-shrink: 0;
-    min-width: 1rem;
-    text-align: right;
   }
 
-  .bl-adv { font-size: 0.5rem; flex-shrink: 0; }
+  .bg-adv { font-size: 0.4rem; flex-shrink: 0; }
 
-  .bl-status {
-    grid-column: 1 / -1;
-    font-size: 0.55rem;
-    color: var(--gray);
-    text-align: right;
-    padding-top: 0.05rem;
-    border-top: 1px solid rgba(255,255,255,0.04);
+  .bg-svg {
+    z-index: 0;
+    pointer-events: none;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
   }
+
+  .bg-svg-line {
+    stroke: rgba(0,200,81,0.2);
+    stroke-width: 1;
+    fill: none;
+  }
+
+  .bracket-center {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    justify-content: center;
+    padding: 0 0.3rem;
+  }
+
+  .bracket-center-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 0.4rem;
+  }
+
+  .bracket-center-card .bracket-match {
+    background: linear-gradient(145deg, rgba(26,26,26,0.9) 0%, rgba(20,20,20,0.95) 100%);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    padding: 0.25rem 0.4rem;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .bracket-center-card .bracket-match:hover {
+    border-color: rgba(0,200,81,0.4);
+    box-shadow: 0 0 12px rgba(0,200,81,0.1);
+  }
+
+  .bracket-round-title {
+    font-family: 'Gasoek One', sans-serif;
+    font-size: 0.7rem;
+    color: var(--green);
+    text-align: center;
+    padding: 0.2rem 0;
+    border-bottom: 1px solid var(--gray-light);
+    margin-bottom: 0.25rem;
+    text-shadow: 0 0 6px rgba(0,200,81,0.3);
+  }
+
+  .bracket-match {
+    background: linear-gradient(145deg, rgba(26,26,26,0.9) 0%, rgba(20,20,20,0.95) 100%);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 0.35rem 0.5rem;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .bracket-match:hover {
+    border-color: rgba(0,200,81,0.4);
+    box-shadow: 0 0 12px rgba(0,200,81,0.1);
+  }
+
+  .bracket-done { border-color: rgba(0,200,81,0.3); box-shadow: 0 0 10px rgba(0,200,81,0.08); }
 
   .bracket-teams { display: flex; flex-direction: column; gap: 0.15rem; }
 
