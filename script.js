@@ -1,6 +1,7 @@
 // ============================================================
 //  DATA
 // ============================================================
+const APP_VERSION = '20260701';
 const GROUPS = {
   A: { teams: [
     {name:'México',flag:'🇲🇽',fifaPoints:1700},{name:'África do Sul',flag:'🇿🇦',fifaPoints:1450},
