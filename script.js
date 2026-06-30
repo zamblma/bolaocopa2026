@@ -1073,7 +1073,7 @@ function renderFullBracket(results, thirdAssignments, compact = false) {
     [102],
     [100, 99],
     [96, 95, 94, 93],
-    [87, 85, 88, 86, 84, 83, 82, 81],
+    [85, 87, 86, 88, 81, 82, 83, 84],
   ];
 
   const finalMatch = getResolvedMatch(ALL_MATCHES.find(m => m.id === 104), results, thirdAssignments);
