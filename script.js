@@ -1043,7 +1043,7 @@ function renderBracketGrid(matchIdsByRound, results, thirdAssignments, labels) {
   let html = `<div class="bg-round-labels">`;
   matchIdsByRound.forEach((_, r) => { html += `<div class="bg-round-label">${roundNames[r] || ''}</div>`; });
   html += '</div>';
-  html += `<div class="bg-grid" style="grid-template-columns: repeat(${rounds}, 1fr); grid-template-rows: repeat(${totalRows}, 1.4rem);">`;
+  html += `<div class="bg-grid" style="grid-template-columns: repeat(${rounds}, 1fr); grid-template-rows: repeat(${totalRows}, 2rem);">`;
 
   // Match cards
   matchIdsByRound.forEach((ids, r) => {
