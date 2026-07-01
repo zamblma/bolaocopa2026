@@ -1011,6 +1011,7 @@ function renderGroups() {
       </div>` : ''}
     </div>`;
   }).join('');
+  requestAnimationFrame(() => { const e = grid.querySelector('.bracket-half:last-child .bracket-half-content'); if (e) e.scrollLeft = e.scrollWidth; });
 }
 
 function renderBracketGrid(matchIdsByRound, results, thirdAssignments, labels) {

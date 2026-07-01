@@ -1438,13 +1438,14 @@
     background: var(--card-bg);
     border-radius: var(--radius-lg);
     border: 1px solid var(--gray-light);
+    overflow-x: auto;
     width: 100%;
   }
 
   .bracket-two-sides {
     display: flex;
     gap: 0.5rem;
-    align-items: flex-start;
+    align-items: stretch;
   }
 
   .bracket-half {
@@ -1468,7 +1469,9 @@
   }
 
   .bracket-half-content {
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
   }
 
   .bg-round-labels {
