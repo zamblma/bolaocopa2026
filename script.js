@@ -1011,7 +1011,6 @@ function renderGroups() {
       </div>` : ''}
     </div>`;
   }).join('');
-  requestAnimationFrame(() => { const e = grid.querySelector('.bracket-half:last-child .bracket-half-content'); if (e) e.scrollLeft = e.scrollWidth; });
 }
 
 function renderBracketGrid(matchIdsByRound, results, thirdAssignments, labels) {
@@ -1043,7 +1042,7 @@ function renderBracketGrid(matchIdsByRound, results, thirdAssignments, labels) {
   let html = `<div class="bg-round-labels">`;
   matchIdsByRound.forEach((_, r) => { html += `<div class="bg-round-label">${roundNames[r] || ''}</div>`; });
   html += '</div>';
-  html += `<div class="bg-grid" style="grid-template-columns: repeat(${rounds}, 1fr); grid-template-rows: repeat(${totalRows}, 2rem);">`;
+  html += `<div class="bg-grid" style="grid-template-columns: repeat(${rounds}, minmax(0, 1fr)); grid-template-rows: repeat(${totalRows}, 1.3rem);">`;
 
   // Match cards
   matchIdsByRound.forEach((ids, r) => {
